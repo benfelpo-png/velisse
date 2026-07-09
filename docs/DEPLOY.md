@@ -1,6 +1,13 @@
-# Fabric Ops on Vercel — Deploy
+# Velisse on Vercel — Deploy
 
-One project, one permanent URL. The app lives at `/`, the API and database live under `/api`.
+Canonical project links established on July 9, 2026:
+
+- GitHub repo: `https://github.com/benfelpo-png/velisse`
+- Vercel project: `https://vercel.com/velisse-inventory-system/velisse`
+- Current deployment host: `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app`
+- API base: `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api`
+
+The app lives at `/`; the API and database endpoints live under `/api`.
 
 ## Deploy (from this folder)
 
@@ -10,24 +17,23 @@ vercel login                 # log in with your personal account
 vercel --prod                # personal scope is the default; accept the prompts
 ```
 
-That prints your permanent URL, e.g. `https://fabricops.vercel.app`.
-(If your account has teams, force personal scope with `vercel --prod --scope <your-username>`.)
+Use the existing Vercel project `velisse-inventory-system/velisse`; do not create a separate replacement Vercel project or use an unrelated Vercel site.
 
 ## Add the database (2 minutes)
 
-Vercel dashboard → your project → **Storage** → **Create Database** → **Neon Postgres** → connect to this project. That injects `DATABASE_URL` automatically. Tables create themselves on first use.
+Vercel dashboard -> `velisse-inventory-system/velisse` -> **Storage** -> **Create Database** -> **Neon Postgres** -> connect to this project. That injects `DATABASE_URL` automatically. Tables create themselves on first use.
 
 Then set the app key:
 
 ```bash
-vercel env add APP_KEY production      # paste a long random string
+vercel env add APP_KEY production      # paste the shared app key; never commit it
 vercel --prod                          # redeploy to pick up env vars
 ```
 
 ## Connect the app
 
-Open `https://<your-url>` → More → Sync & export → **Connect Shopify**:
-- Worker URL: `https://<your-url>/api`
+Open `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app` -> More -> Sync & export -> **Connect Shopify**:
+- Worker URL: `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api`
 - API key: the APP_KEY value
 
 From that moment the cloud database is live: every device with the URL + key shares the same data, with snapshot history and the SQL ledger mirror. Shopify can wait — the database works without it.
@@ -39,7 +45,7 @@ From that moment the cloud database is live: every device with the URL + key sha
    vercel env add SHOPIFY_SHOP production              # your-store.myshopify.com
    vercel env add SHOPIFY_TOKEN production             # shpat_…
    ```
-3. Shopify admin → Settings → Notifications → Webhooks → add **Order creation** and **Order update**, JSON, pointing at `https://<your-url>/api/webhooks/shopify`. Copy the signing secret shown on that page:
+3. Shopify admin -> Settings -> Notifications -> Webhooks -> add **Order creation** and **Order update**, JSON, pointing at `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api/webhooks/shopify`. Copy the signing secret shown on that page:
    ```bash
    vercel env add SHOPIFY_WEBHOOK_SECRET production
    vercel --prod
@@ -58,4 +64,4 @@ SELECT rev, at, device FROM snapshots ORDER BY rev DESC;
 ## Optional hardening
 
 - Custom domain: project → Settings → Domains (e.g. `ops.yourdomain.com`).
-- Gate the page itself: project → Settings → Deployment Protection (the data is already gated by APP_KEY either way).
+- Deployment Protection must allow Shopify and devices to reach `/api/*`. If Vercel Authentication is enabled, `/api/health` returns Vercel login HTML instead of JSON and Shopify webhooks will not work.

@@ -98,7 +98,7 @@ export default async function handler(req, res) {
 function routePath(req) {
   const parts = [].concat(req.query.route || []);
   if (parts.length) return "/" + parts.join("/");
-  const pathname = new URL(req.url || "/", "http://fabricops.local").pathname;
+  const pathname = new URL(req.url || "/", "http://velisse.local").pathname;
   return pathname.replace(/^\/api(?=\/|$)/, "") || "/";
 }
 
@@ -384,7 +384,7 @@ async function handleInventorySet(res, body) {
       {
         input: {
           reason: "correction",
-          referenceDocumentUri: "gid://fabricops/sync",
+          referenceDocumentUri: "gid://velisse/sync",
           setQuantities: batch,
         },
       }

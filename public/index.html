@@ -191,7 +191,7 @@ const EMPTY=()=>({v:1,seq:{roll:0,order:0,transfer:0,route:0,txn:0,po:0,cc:0},
 function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 function nextCode(kind,prefix,w=6){db.seq[kind]=(db.seq[kind]||0)+1;return prefix+'-'+pad(db.seq[kind],w)}
 /* ============ storage: cloud database (worker D1) → localStorage → artifact storage ============ */
-const DBKEY='fabricops-db';
+const DBKEY='velisse-db',LEGACY_DBKEYS=['fabric'+'ops-db'];
 let syncState={mode:'memory',rev:0,lastSync:null,syncing:false,error:''};
 let forceCloudPull=false;
 let migrationChanged=false;
@@ -199,9 +199,9 @@ function hasLocal(){try{return typeof localStorage!=='undefined'&&(localStorage.
 function hasArtifact(){return typeof window!=='undefined'&&window.storage&&typeof window.storage.get==='function'}
 async function loadDB(){
   db=EMPTY();
-  try{if(hasLocal()){const r=localStorage.getItem(DBKEY);if(r){db=JSON.parse(r);syncState.mode='local'}}}catch(e){}
+  try{if(hasLocal()){const r=[DBKEY].concat(LEGACY_DBKEYS).map(k=>localStorage.getItem(k)).find(Boolean);if(r){db=JSON.parse(r);syncState.mode='local'}}}catch(e){}
   if(syncState.mode==='memory'&&hasArtifact()){
-    try{const r=await window.storage.get(DBKEY);if(r&&r.value){db=JSON.parse(r.value);syncState.mode='artifact'}}catch(e){}
+    try{let r=await window.storage.get(DBKEY);for(const k of LEGACY_DBKEYS){if(!r||!r.value)r=await window.storage.get(k)}if(r&&r.value){db=JSON.parse(r.value);syncState.mode='artifact'}}catch(e){}
   }
   migrate();
   applyConnectionHash();
@@ -1384,7 +1384,7 @@ function vSync(){
       <button class="btn small" onclick="exportErplyProducts()">⬇ Products (ERPLY cols)</button>
       <button class="btn sec small" onclick="exportErplyStock()">⬇ Stock levels</button></div></div>
   <div class="card"><h3>Backup</h3><div class="row">
-    <button class="btn ghost small" onclick="download('fabricops_backup.json',JSON.stringify(db,null,1),'application/json')">⬇ Full JSON backup</button>
+    <button class="btn ghost small" onclick="download('velisse_backup.json',JSON.stringify(db,null,1),'application/json')">⬇ Full JSON backup</button>
     <button class="btn ghost small" onclick="mRestore()">⬆ Restore</button></div></div>
   <div class="card"><h3>Sync log</h3>
     ${log.length?log.map(l=>`<div class="li"><div class="grow"><div class="t sm">${esc(l.shopifyObjectType)} ${esc(l.direction)}</div>
@@ -1924,7 +1924,7 @@ function shopCfg(){
 function mShopifySettings(){
   const s=shopCfg();
   modal('Shopify connector',`
-    <label>Sync worker URL</label><input id="sh_url" value="${esc(s.workerUrl)}" placeholder="https://your-app.vercel.app/api">
+    <label>Sync worker URL</label><input id="sh_url" value="${esc(s.workerUrl)}" placeholder="https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api">
     <label>Worker API key</label><input id="sh_key" value="${esc(s.apiKey)}" placeholder="Shared secret set in the worker">
     <label class="chk"><input type="checkbox" id="sh_auto" ${s.autoPush?'checked':''}> Auto-push inventory after every stock change</label>
     <div style="border-top:1px dotted var(--line);margin:10px 0;padding-top:10px">

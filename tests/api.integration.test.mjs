@@ -1,6 +1,6 @@
 /**
  * Integration test of the API function against a real PostgreSQL database.
- * Requires TEST_PG_URL, e.g. postgresql://postgres@localhost:5432/fabricops_test
+ * Requires TEST_PG_URL, e.g. postgresql://postgres@localhost:5432/velisse_test
  * Tables are dropped and recreated. Run: npm run test:api
  */
 import crypto from "node:crypto";

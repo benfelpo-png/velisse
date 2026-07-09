@@ -147,7 +147,7 @@ The app's CSV order import (`Sync → Import Shopify orders`) is the manual vers
 
 ### 3.5 The connector (built)
 
-The connector ships alongside the app as `fabricops-sync-worker.js`, a single-file Cloudflare Worker that acts as the Shopify custom app backend. It owns the Admin API token, verifies webhook HMACs, queues incoming orders in KV, and exposes an authenticated API the app calls directly:
+The production connector now ships inside the established Vercel project `velisse-inventory-system/velisse` as `api/[...route].js`. It owns the Admin API token through Vercel env vars, verifies webhook HMACs, queues incoming orders in Neon Postgres, and exposes an authenticated API the app calls directly:
 
 | Endpoint | Purpose |
 |---|---|
@@ -157,21 +157,22 @@ The connector ships alongside the app as `fabricops-sync-worker.js`, a single-fi
 | `POST /inventory/set` | `inventorySetOnHandQuantities` per SKU per location; resolves inventory item IDs by SKU on first push |
 | `POST /products/push` | `productSet` create/update with photos as media; returns Shopify IDs the app stores per variant |
 
-The app side is built in too: connector settings (worker URL, shared key, store→location mapping), Test connection, manual push/pull buttons, and an optional auto-push that debounces a live inventory sync 4 seconds after any stock-changing ledger event (cut, receive, adjust, damage, reserve, release, transfer). Setup takes ~15 minutes: create the custom app in Shopify admin with `read_orders`, `write_products`, `write_inventory`, `read_locations` scopes, deploy the worker with wrangler, register two webhooks. Full steps in `worker/SETUP.md`.
+The app side is built in too: connector settings (API base URL, shared key, store→location mapping), Test connection, manual push/pull buttons, and an optional auto-push that debounces a live inventory sync 4 seconds after any stock-changing ledger event (cut, receive, adjust, damage, reserve, release, transfer). Setup takes ~15 minutes: create the custom app in Shopify admin with `read_orders`, `write_products`, `write_inventory`, `read_locations` scopes, add the Shopify env vars to Vercel, register two webhooks, and redeploy. Full steps are in `docs/SETUP-SHOPIFY.md`.
 
 QBO remains file-based for now; the same worker is the natural home for a QBO journal poster later.
 
 ### 3.6 The database
 
-The worker also carries the system of record: a Cloudflare D1 (SQLite) database with three tables.
+The Vercel API uses Neon Postgres as the system of record, with four tables created automatically on first use.
 
 | Table | Role |
 |---|---|
 | `state` | Current full application state, one row, with a revision number |
 | `snapshots` | Last 30 revisions for point-in-time restore (a restore is itself a new revision) |
-| `ledger` | Append-only SQL mirror of every inventory transaction — queryable directly with `wrangler d1 execute` for audits and accounting |
+| `ledger` | Append-only SQL mirror of every inventory transaction — queryable directly in Neon for audits and accounting |
+| `order_queue` | Shopify webhook order queue, deduped by Shopify order ID |
 
-Sync model: each device saves locally first (localStorage, so the app works offline and in a plain browser with no worker at all), then pushes to D1 with optimistic locking on the revision number. A stale push gets a 409 with the server state; the app adopts it and tells the user. Device identity (which store and person you are) stays local and is never overwritten by a pull. Every device configured with the same worker URL and key shares one database, which is what makes the multi-store, multi-person workflows (transfers, deliveries, cutting queue) actually multi-user.
+Sync model: each device saves locally first (localStorage, so the app works offline and in a plain browser with no API at all), then pushes to Neon through the Vercel API with optimistic locking on the revision number. A stale push gets a 409 with the server state; the app adopts it and tells the user. Device identity (which store and person you are) stays local and is never overwritten by a pull. Every device configured with the same API base URL and key shares one database, which is what makes the multi-store, multi-person workflows (transfers, deliveries, cutting queue) actually multi-user.
 
 ---
 

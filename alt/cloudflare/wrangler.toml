@@ -1,5 +1,5 @@
-name = "fabricops-sync"
-main = "fabricops-sync-worker.js"
+name = "velisse-sync"
+main = "velisse-sync-worker.js"
 compatibility_date = "2025-06-01"
 
 # Create the KV namespace first:  npx wrangler kv namespace create ORDERS
@@ -8,11 +8,11 @@ compatibility_date = "2025-06-01"
 binding = "ORDERS"
 id = "PASTE_KV_NAMESPACE_ID_HERE"
 
-# Create the database first:  npx wrangler d1 create fabricops
+# Create the database first:  npx wrangler d1 create velisse
 # then paste the database_id it prints below.
 [[d1_databases]]
 binding = "DB"
-database_name = "fabricops"
+database_name = "velisse"
 database_id = "PASTE_D1_DATABASE_ID_HERE"
 
 [vars]

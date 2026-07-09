@@ -1,7 +1,7 @@
 /**
  * Fabric Ops — Shopify Sync Worker
- * Single-file Cloudflare Worker. The native connector between the Fabric Ops
- * app and a Shopify store (custom app, Admin GraphQL API).
+ * Single-file Cloudflare Worker. Earlier alternate connector between the
+ * Velisse app and a Shopify store (custom app, Admin GraphQL API).
  *
  * Endpoints (all except webhooks require X-Api-Key: APP_KEY):
  *   GET  /health              → shop name + location list (for store mapping)
@@ -17,7 +17,7 @@
  *                                 description, price, sku, photos[], shopifyProductId?, shopifyVariantId?}] }
  *
  * Required config (wrangler secrets / vars):
- *   SHOPIFY_SHOP            e.g. "dripped-fabrics.myshopify.com"
+ *   SHOPIFY_SHOP            e.g. "your-store.myshopify.com"
  *   SHOPIFY_TOKEN           Admin API access token from the custom app (shpat_…)
  *   SHOPIFY_WEBHOOK_SECRET  webhook signing secret from the custom app
  *   APP_KEY                 shared secret; paste the same value into Fabric Ops → Sync → Connector settings
@@ -401,7 +401,7 @@ async function handleInventorySet(request, env) {
       {
         input: {
           reason: "correction",
-          referenceDocumentUri: "gid://fabricops/sync",
+          referenceDocumentUri: "gid://velisse/sync",
           setQuantities: batch,
         },
       }

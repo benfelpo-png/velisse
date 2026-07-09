@@ -1,8 +1,15 @@
-# Fabric Ops
+# Velisse Fabric Inventory
 
 Fabric inventory for a multi-store business: roll-level yardage tracking, QR scanning and label printing, order allocation with dye-lot preference, transfers, delivery routes, and native 2-way Shopify sync. Replaces ERPLY, exports to QuickBooks.
 
-One Vercel project = one permanent URL:
+Canonical project links established on July 9, 2026:
+
+- GitHub repo: `https://github.com/benfelpo-png/velisse`
+- Vercel project: `https://vercel.com/velisse-inventory-system/velisse`
+- Current deployment host: `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app`
+- API base: `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api`
+
+One Vercel project = one app and API:
 
 - `/` — the app (single-file, offline-capable, installable from the browser)
 - `/api/*` — the backend (one serverless function)
@@ -16,16 +23,16 @@ npm run test:app                       # verify the client
 vercel login && vercel --prod          # deploy (personal scope is default)
 ```
 
-Then in the Vercel dashboard: **Storage → Neon Postgres → connect**, and `vercel env add APP_KEY production`, redeploy. Full walkthrough in `docs/DEPLOY.md`; Shopify go-live in the same doc.
+Then in the Vercel dashboard for `velisse-inventory-system/velisse`: **Storage -> Neon Postgres -> connect**, add `APP_KEY`, and redeploy. Full walkthrough in `docs/DEPLOY.md`; Shopify go-live is in `docs/SETUP-SHOPIFY.md`.
 
-## Push to GitHub for auto-deploys
+## Existing GitHub Remote
 
 ```bash
-git init && git add -A && git commit -m "Fabric Ops"
-gh repo create fabricops --private --source . --push     # or add a remote manually
+git remote set-url origin https://github.com/benfelpo-png/velisse.git
+git push origin main
 ```
 
-Then Vercel dashboard → New Project → import the repo. Every push deploys; PRs get preview URLs.
+The repo is already connected locally and pushed to `benfelpo-png/velisse`. Vercel should import or redeploy from that repo only; do not create a separate replacement repo or use an unrelated Vercel site.
 
 ## Working on it
 

@@ -1,78 +1,106 @@
-# Fabric Ops ↔ Shopify Connector — Setup
+# Velisse Shopify Connector Setup
 
-The connector is one Cloudflare Worker (free tier is enough) plus a Shopify custom app on your store. Fifteen minutes end to end.
+The Shopify connector now runs inside the established Vercel project:
 
-## 1. Create the Shopify custom app
+- GitHub repo: `https://github.com/benfelpo-png/velisse`
+- Vercel project: `https://vercel.com/velisse-inventory-system/velisse`
+- Current deployment host: `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app`
+- API base: `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api`
 
-Shopify admin → Settings → Apps and sales channels → Develop apps → Create an app ("Fabric Ops Sync").
+Do not use the old Cloudflare Worker/D1 setup for production. The Vercel function in `api/[...route].js` owns the database sync, Shopify order queue, inventory pushes, and product pushes.
+
+## 1. Confirm Vercel
+
+In Vercel project `velisse-inventory-system/velisse`, confirm these env vars exist:
+
+```text
+DATABASE_URL
+APP_KEY
+```
+
+`DATABASE_URL` is created by the Neon Postgres integration. `APP_KEY` is the shared secret pasted into the app connector settings. Never commit either value.
+
+Deployment Protection must allow devices and Shopify to reach `/api/*`. If `/api/health` returns Vercel login HTML, Shopify webhooks and app sync will not work.
+
+## 2. Create The Shopify Custom App
+
+Shopify admin -> Settings -> Apps and sales channels -> Develop apps -> Create an app named:
+
+```text
+Velisse Inventory Sync
+```
 
 Configure Admin API scopes:
-- `read_orders`
-- `write_products`
-- `write_inventory`
-- `read_locations`
 
-Install the app, then copy the **Admin API access token** (shpat_…). You only see it once.
-
-## 2. Deploy the worker
-
-```bash
-npm install -g wrangler
-wrangler login
-cd worker
-npx wrangler kv namespace create ORDERS   # paste the id into wrangler.toml
-npx wrangler d1 create fabricops          # paste the database_id into wrangler.toml
-# edit wrangler.toml: set SHOPIFY_SHOP to your-store.myshopify.com
-npx wrangler secret put SHOPIFY_TOKEN            # the shpat_ token
-npx wrangler secret put APP_KEY                  # invent a long random string
-npx wrangler deploy
+```text
+read_orders
+write_products
+write_inventory
+read_locations
 ```
 
-Note the deployed URL, e.g. `https://fabricops-sync.yourname.workers.dev`.
+Install the app, then copy the Admin API access token. You only see it once.
 
-## 3. Register webhooks
+## 3. Add Shopify Env Vars In Vercel
 
-Shopify admin → Settings → Notifications → Webhooks → Create webhook:
-- Event: **Order creation**, format JSON, URL: `https://<worker-url>/webhooks/shopify`
-- Repeat for **Order update** (catches cancellations, which clear the queue).
+In Vercel -> `velisse-inventory-system/velisse` -> Settings -> Environment Variables, add:
 
-Copy the **webhook signing secret** shown at the bottom of the webhooks page, then:
-
-```bash
-npx wrangler secret put SHOPIFY_WEBHOOK_SECRET
+```text
+SHOPIFY_SHOP=your-store.myshopify.com
+SHOPIFY_TOKEN=shpat_...
 ```
 
-## 4. Connect the app
+Redeploy after saving env vars.
 
-Fabric Ops → More → Sync & export → **Connect Shopify**:
-- Worker URL: the deployed URL
-- API key: the same APP_KEY value
-- Tap **Test connection** — it lists your Shopify locations; paste each location ID into the store mapping.
-- Optionally enable **auto-push** so every cut, receive, adjustment, and transfer syncs inventory within seconds.
+## 4. Register Shopify Webhooks
 
-## 5. First sync order of operations
+In Shopify admin -> Settings -> Notifications -> Webhooks, create:
 
-1. **Push products** — creates/updates Shopify products from your variants (title, color, price, SKU, up to 3 photos) and stores the Shopify IDs back on each variant.
-2. **Push inventory** — sets on-hand per location from sellable yardage (excludes reserved, damaged, on-hold, in-transit, truck, and staging stock).
-3. Place a test order in Shopify → **Pull new orders** — it imports, matches SKUs, creates the customer, and auto-reserves rolls FIFO with dye-lot preference. Already-imported orders are skipped by Shopify order ID.
-
-## The database
-
-The worker carries a real SQLite database (Cloudflare D1) that is the system of record:
-
-- **Shared state.** Every device connected with the same worker URL and key reads and writes the same data. The app saves locally first (works offline), then syncs to D1 with optimistic locking — if two people save at once, the second pulls the winner's state and is told so.
-- **History.** Every cloud save keeps a snapshot (last 30 revisions). Sync page → Database → History lets you roll back to any of them; a restore is itself a new revision, so nothing is ever destroyed.
-- **Queryable ledger.** Every inventory transaction is mirrored into a `ledger` SQL table. Query it directly for accounting or audits:
-
-```bash
-npx wrangler d1 execute fabricops --command \
-  "SELECT type, SUM(yards) FROM ledger WHERE at >= '2026-07-01' GROUP BY type"
+```text
+Event: Order creation
+Format: JSON
+URL: https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api/webhooks/shopify
 ```
 
-No worker configured? The app still persists in the browser's localStorage on each device — it just isn't shared.
+Create another webhook:
 
-## Conflict rules (as designed in the integration spec)
+```text
+Event: Order update
+Format: JSON
+URL: https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api/webhooks/shopify
+```
 
-- Inventory: Fabric Ops wins. Never edit quantities in Shopify admin.
-- Products/prices: Fabric Ops wins on push.
-- Orders: Shopify wins; the app fulfills, never edits upstream.
+Copy the webhook signing secret from Shopify, then add it to Vercel:
+
+```text
+SHOPIFY_WEBHOOK_SECRET=...
+```
+
+Redeploy again.
+
+## 5. Connect The App
+
+Open the Velisse app, then go to More -> Sync & export -> Connect Shopify.
+
+Use:
+
+```text
+Worker URL: https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api
+API key:    the APP_KEY value from Vercel
+```
+
+Tap Test connection. It should return JSON from `/api/health` and list Shopify locations once Shopify env vars are present.
+
+## 6. First Sync Order
+
+1. Push products.
+2. Push inventory.
+3. Place a Shopify test order.
+4. Pull new orders.
+5. Confirm the order imports and auto-reserves rolls.
+
+Conflict ownership remains:
+
+- Inventory: Velisse wins. Never edit quantities in Shopify admin.
+- Products/prices: Velisse wins on push.
+- Orders: Shopify wins; Velisse imports and fulfills.

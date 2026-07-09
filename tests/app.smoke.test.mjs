@@ -94,7 +94,7 @@ const tests = `
   const views=[vHome,vCatalog,vRolls,vOrders,vLocations,vTransfers,vDelivery,vReports,vSync,vSettings,vScan,vMore];
   check('all views render strings', views.every(v=>typeof v()==='string'));
   save();await new Promise(r=>setTimeout(r,400));
-  check('localStorage persists', !!localStorage.getItem('fabricops-db'));
+  check('localStorage persists', !!localStorage.getItem('velisse-db'));
   shopCfg().workerUrl='https://sync.test/api';shopCfg().apiKey='k';
   save();await new Promise(r=>setTimeout(r,2600));
   check('cloud push on save', server.rev===1&&server.data.rolls.length===12);
