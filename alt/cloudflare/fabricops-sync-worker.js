@@ -28,7 +28,7 @@
  * Shopify custom app scopes: read_orders, write_products, write_inventory, read_locations
  */
 
-const API_VERSION = "2025-01";
+const API_VERSION = "2026-07";
 
 export default {
   async fetch(request, env) {

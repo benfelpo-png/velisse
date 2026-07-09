@@ -28,7 +28,7 @@ import { sql } from "../lib/db.js";
 
 export const config = { api: { bodyParser: false } };
 
-const API_VERSION = "2025-01";
+const API_VERSION = "2026-07";
 
 let tablesReady = null;
 function ensureTables() {
