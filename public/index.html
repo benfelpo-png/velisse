@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fabric Ops — Inventory, Rolls & Fulfillment</title>
+<script src="/vendor/qrcode.min.js"></script>
+<script src="/vendor/jsQR.min.js"></script>
+<style>
+:root{
+  --ink:#1b1f2c; --ink2:#5a6072; --indigo:#2e3d8f; --indigo-d:#232f6e;
+  --selvage:#e4572e; --ok:#2e7d5b; --warn:#c4402f; --hold:#a8781c;
+  --bg:#f1f1ec; --surface:#ffffff; --line:#dcd9cf; --line2:#ecebe4;
+  --chip:#eef0f8; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --cond:'Arial Narrow','Helvetica Neue Condensed',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font:15px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--bg);padding-bottom:76px}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--indigo);outline-offset:0;border-color:var(--indigo)}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin:12px 0 4px}
+a{color:var(--indigo)}
+/* Header */
+header{position:sticky;top:0;z-index:40;background:var(--ink);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.brand{font-family:var(--cond);font-weight:700;font-size:19px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.brand b{color:var(--selvage)}
+.hdr-sel{margin-left:auto;display:flex;gap:6px;min-width:0}
+.hdr-sel select{background:#2a2f3e;color:#fff;border:1px solid #3a4054;font-size:12px;padding:6px 8px;border-radius:6px;max-width:130px}
+/* Selvage strip signature: dotted edge like a fabric selvage */
+.selvage-strip{height:6px;background:repeating-linear-gradient(90deg,var(--selvage) 0 10px,transparent 10px 20px);opacity:.9}
+/* Layout */
+main{padding:14px;max-width:960px;margin:0 auto}
+.page-title{font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);margin:2px 0 12px;display:flex;align-items:center;gap:8px}
+.page-title:after{content:'';flex:1;border-top:1px dashed var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.card h3{font-size:15px;margin-bottom:8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.muted{color:var(--ink2);font-size:13px}
+.sm{font-size:12px}
+.mono{font-family:var(--mono);font-size:12px}
+.right{margin-left:auto}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--indigo);color:#fff;font-weight:600;font-size:14px;padding:10px 14px;border-radius:8px}
+.btn:active{background:var(--indigo-d)}
+.btn.sec{background:var(--chip);color:var(--indigo)}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:#fbeae7;color:var(--warn)}
+.btn.small{padding:6px 10px;font-size:13px;border-radius:7px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.45;cursor:default}
+/* Chips & badges */
+.chip{display:inline-block;background:var(--chip);color:var(--indigo);font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.04em}
+.badge{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:4px}
+.b-ok{background:#e2f1ea;color:var(--ok)} .b-warn{background:#fbeae7;color:var(--warn)}
+.b-hold{background:#f7ecd4;color:var(--hold)} .b-mut{background:var(--line2);color:var(--ink2)}
+.b-ind{background:var(--chip);color:var(--indigo)}
+/* List rows */
+.li{display:flex;gap:10px;align-items:center;padding:11px 2px;border-bottom:1px solid var(--line2)}
+.li:last-child{border-bottom:none}
+.li .grow{flex:1;min-width:0}
+.li .t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .s{font-size:12px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.swatch{width:34px;height:34px;border-radius:7px;border:1px solid var(--line);flex:none;background:#eee}
+.tap{cursor:pointer}
+.tap:active{background:var(--line2)}
+/* Yardage bar */
+.ybar{height:10px;border-radius:6px;background:var(--line2);overflow:hidden;display:flex;margin:6px 0 2px}
+.ybar .cur{background:var(--indigo)} .ybar .res{background:var(--selvage)}
+.ylegend{font-size:11px;color:var(--ink2);display:flex;gap:10px}
+.ylegend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px;vertical-align:baseline}
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat .n{font-family:var(--cond);font-size:26px;font-weight:700;letter-spacing:.02em}
+.stat .l{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+/* Tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:8px;border-bottom:1px solid var(--line2);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* Tabs (secondary) */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;-webkit-overflow-scrolling:touch}
+.tabs button{flex:none;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;color:var(--ink2)}
+.tabs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+/* Bottom nav */
+nav.bottom{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);display:flex;padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
+nav.bottom button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--ink2);border-radius:8px}
+nav.bottom button.on{color:var(--indigo)}
+nav.bottom svg{width:22px;height:22px}
+/* Scan FAB */
+.fab{position:fixed;right:14px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:41;width:56px;height:56px;border-radius:16px;background:var(--selvage);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(228,87,46,.4)}
+.fab svg{width:26px;height:26px}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(20,22,30,.55);z-index:60;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:640px){.modal-bg{align-items:center}}
+.modal{background:var(--surface);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:16px 16px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+@media(min-width:640px){.modal{border-radius:14px}}
+.modal h2{font-family:var(--cond);font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center}
+.modal h2 .x{margin-left:auto;font-size:22px;color:var(--ink2);padding:0 4px}
+.modal .actions{display:flex;gap:8px;margin-top:16px}
+.modal .actions .btn{flex:1}
+/* Roll ticket (viewer header) */
+.ticket{background:var(--surface);border:1px solid var(--ink);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.ticket .th{background:var(--ink);color:#fff;padding:8px 12px;display:flex;align-items:center;gap:8px}
+.ticket .th .code{font-family:var(--mono);font-size:13px;letter-spacing:.06em}
+.ticket .tb{padding:12px}
+.ticket .selvage-strip{height:5px}
+/* QR box */
+.qrbox{background:#fff;padding:8px;border:1px solid var(--line);border-radius:8px;display:inline-block}
+.qrbox svg,.qrbox img{display:block;width:120px;height:120px}
+/* Toast */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:70;background:var(--ink);color:#fff;padding:10px 16px;border-radius:99px;font-size:13px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+/* Search */
+.search{position:relative;margin-bottom:10px}
+.search input{padding-left:34px}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--ink2)}
+/* Video scan */
+#scanvideo{width:100%;border-radius:10px;background:#000;max-height:52vh;object-fit:cover}
+/* Empty state */
+.empty{text-align:center;padding:34px 16px;color:var(--ink2)}
+.empty .big{font-family:var(--cond);font-size:17px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;color:var(--ink)}
+/* PRINT */
+#printarea{display:none}
+@media print{
+  body>*{display:none!important}
+  body{padding:0;background:#fff}
+  #printarea{display:block!important}
+  .plabel{page-break-inside:avoid;border:2px solid #000;border-radius:6px;padding:10px;margin:0 0 10px;width:4in;font-family:-apple-system,sans-serif}
+  .plabel .ph{font-family:var(--cond);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:12px;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:6px;display:flex;justify-content:space-between}
+  .plabel .big{font-size:18px;font-weight:800}
+  .plabel .mono{font-family:var(--mono)}
+  .plabel table{width:100%;font-size:11px;border-collapse:collapse}
+  .plabel td{padding:2px 4px;border-bottom:1px dotted #999}
+  .psheet{page-break-after:always;font-size:12px;padding:12px}
+  .psheet h1{font-family:var(--cond);font-size:16px;letter-spacing:.12em;text-transform:uppercase;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
+  .psheet table{width:100%;border-collapse:collapse;font-size:11px}
+  .psheet th{text-align:left;border-bottom:1.5px solid #000;padding:4px}
+  .psheet td{border-bottom:1px solid #ccc;padding:4px;vertical-align:top}
+  .pqr{float:right;margin-left:8px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Fabric<b>·</b>Ops</div>
+  <div class="hdr-sel">
+    <select id="hdrStore" onchange="setStore(this.value)"></select>
+    <select id="hdrPerson" onchange="setPerson(this.value)"></select>
+  </div>
+</header>
+<div class="selvage-strip"></div>
+<main id="view"></main>
+
+<button class="fab" onclick="go('scan')" aria-label="Scan">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M3 12h18"/></svg>
+</button>
+
+<nav class="bottom" id="bottomnav"></nav>
+<div id="modalroot"></div>
+<div id="toast"></div>
+<div id="printarea"></div>
+<script>
+/* ============ tiny helpers ============ */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2});
+const money=n=>'$'+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const today=()=>new Date().toISOString().slice(0,10);
+const now=()=>new Date().toISOString();
+const dshort=iso=>iso?new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'—';
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2200)}
+function pad(n,w){return String(n).padStart(w,'0')}
+</script>
+<script>
+/* ============ data layer ============ */
+let db=null, saveTimer=null;
+const EMPTY=()=>({v:1,seq:{roll:0,order:0,transfer:0,route:0,txn:0,po:0,cc:0},
+ families:[],types:[],templates:[],variants:[],sellableSkus:[],
+ rolls:[],stores:[],locations:[],people:[],customers:[],suppliers:[],
+ transactions:[],rollHistory:[],orders:[],lineItems:[],allocations:[],
+ transfers:[],routes:[],stops:[],cycleCounts:[],ccLines:[],
+ syncLog:[],printJobs:[],scanEvents:[],
+ settings:{storeId:null,personId:null,lowStockYards:15,
+  qbo:{invAsset:'Inventory Asset',cogs:'Cost of Goods Sold',sales:'Sales of Product Income',ap:'Accounts Payable',shrink:'Inventory Shrinkage'},
+  shopify:{domain:'',locationMap:{}}, erply:{clientCode:'',groupMap:{}}}});
+function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function nextCode(kind,prefix,w=6){db.seq[kind]=(db.seq[kind]||0)+1;return prefix+'-'+pad(db.seq[kind],w)}
+/* ============ storage: cloud database (worker D1) → localStorage → artifact storage ============ */
+const DBKEY='fabricops-db';
+let syncState={mode:'memory',rev:0,lastSync:null,syncing:false,error:''};
+let forceCloudPull=false;
+let migrationChanged=false;
+function hasLocal(){try{return typeof localStorage!=='undefined'&&(localStorage.setItem('__t','1'),localStorage.removeItem('__t'),true)}catch(e){return false}}
+function hasArtifact(){return typeof window!=='undefined'&&window.storage&&typeof window.storage.get==='function'}
+async function loadDB(){
+  db=EMPTY();
+  try{if(hasLocal()){const r=localStorage.getItem(DBKEY);if(r){db=JSON.parse(r);syncState.mode='local'}}}catch(e){}
+  if(syncState.mode==='memory'&&hasArtifact()){
+    try{const r=await window.storage.get(DBKEY);if(r&&r.value){db=JSON.parse(r.value);syncState.mode='artifact'}}catch(e){}
+  }
+  migrate();
+  applyConnectionHash();
+  syncState.rev=db._rev||0;
+  if(migrationChanged)persistLocal();
+  /* cloud database: worker configured → pull, newest rev wins */
+  if(shopCfg().workerUrl){await cloudPull(true)}
+}
+function migrate(){
+  const e=EMPTY();for(const k in e){if(db[k]===undefined)db[k]=e[k]}for(const k in e.settings){if(db.settings[k]===undefined)db.settings[k]=e.settings[k]}
+  if(upgradeLegacyDemoState())migrationChanged=true;
+}
+function isLegacyDemoState(){
+  const codes=(db.stores||[]).map(s=>s.code);
+  if(codes.includes('BUF'))return false;
+  if(!codes.includes('BK')&&!codes.includes('WH1'))return false;
+  const oldPeople=['Ben A.','Maria G.','Devon P.','Sasha L.','Omar R.'];
+  const oldBins=['BK-FLOOR-A1','BK-BACK-B2','BK-STAGE','BK-VAN-1','WH-A-01-1','WH-A-01-2','WH-B-02-1','WH-STAGE'];
+  const oldTemplates=['Classic 4-Way Sequin','Royal Stretch Velvet','Duchess Bridal Satin'];
+  return codes.includes('BK')||codes.includes('WH1')||
+    (db.people||[]).some(p=>oldPeople.includes(p.name))||
+    (db.locations||[]).some(l=>oldBins.includes(l.binCode))||
+    (db.templates||[]).some(t=>oldTemplates.includes(t.displayName));
+}
+function upgradeLegacyDemoState(){
+  if(!isLegacyDemoState())return false;
+  const oldShop=Object.assign({},(db.settings&&db.settings.shopify)||{});
+  db=EMPTY();
+  Object.assign(shopCfg(),oldShop);
+  ensureInventorySetup();
+  db.settings.scanMode='inventory';db._rev=0;
+  if(oldShop.workerUrl&&oldShop.apiKey)forceCloudPull=true;
+  return true;
+}
+function persistLocal(){
+  const j=JSON.stringify(db);let ok=false;
+  try{if(hasLocal()){localStorage.setItem(DBKEY,j);ok=true;if(syncState.mode==='memory')syncState.mode='local'}}catch(e){syncState.error='local: '+e.message}
+  if(hasArtifact()){window.storage.set(DBKEY,j).then(()=>{if(!ok&&syncState.mode==='memory')syncState.mode='artifact'}).catch(()=>{});ok=true}
+  if(!ok)toast('⚠ Running in memory only — nothing persists on this device');
+  return ok;
+}
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{persistLocal();scheduleCloudPush()},300)}
+function applyConnectionHash(){
+  if(typeof location==='undefined'||!location.hash)return;
+  const raw=location.hash.replace(/^#/,'');const p=new URLSearchParams(raw);
+  const key=p.get('key')||p.get('apiKey');
+  const pull=p.get('pull')==='1'||p.get('forcePull')==='1';
+  const url=(p.get('url')||((typeof location!=='undefined'&&location.origin)?location.origin+'/api':'')).replace(/\/+$/,'');
+  if(key&&url){
+    shopCfg().workerUrl=url;shopCfg().apiKey=key;
+    forceCloudPull=true;
+    if(typeof history!=='undefined'&&history.replaceState)history.replaceState(null,'',location.pathname+location.search);
+    persistLocal();
+    toast('Cloud sync configured on this device');
+  }else if(pull&&shopCfg().workerUrl&&shopCfg().apiKey){
+    forceCloudPull=true;
+    if(typeof history!=='undefined'&&history.replaceState)history.replaceState(null,'',location.pathname+location.search);
+    toast('Pulling cloud database on this device');
+  }
+}
+/* --- cloud sync: compare-and-swap on rev, newest wins, conflicts pull server --- */
+let cloudPushTimer=null;
+function scheduleCloudPush(){if(!shopCfg().workerUrl)return;clearTimeout(cloudPushTimer);cloudPushTimer=setTimeout(()=>cloudPush(),2000)}
+async function cloudPush(){
+  const s=shopCfg();if(!s.workerUrl||syncState.syncing)return;
+  syncState.syncing=true;
+  try{
+    const r=await workerFetch('/db',{rev:syncState.rev,data:db,device:me().name||'device'});
+    syncState.rev=r.rev;db._rev=r.rev;syncState.lastSync=now();syncState.error='';
+    persistLocal();
+  }catch(e){
+    if(e.conflict){
+      /* someone else saved first: adopt server state */
+      await cloudPull(false);
+      toast('Updated from cloud database (saved elsewhere)');render();
+    }else{syncState.error=e.message}
+  }
+  syncState.syncing=false;
+  if(route.page==='sync')render();
+}
+async function cloudPull(boot){
+  const s=shopCfg();if(!s.workerUrl)return;
+  syncState.syncing=true;
+  try{
+    const r=await workerFetch('/db');
+    if(r&&r.data&&r.rev>0&&(forceCloudPull||(r.rev||0)>=(syncState.rev||0))){
+      const keepConn={workerUrl:s.workerUrl,apiKey:s.apiKey};
+      const keepDevice={storeId:db.settings.storeId,personId:db.settings.personId};
+      db=typeof r.data==='string'?JSON.parse(r.data):r.data;migrate();
+      Object.assign(shopCfg(),keepConn); /* never lose the connection settings we just used */
+      if(keepDevice.storeId&&byId('stores',keepDevice.storeId))db.settings.storeId=keepDevice.storeId;
+      if(keepDevice.personId&&byId('people',keepDevice.personId))db.settings.personId=keepDevice.personId;
+      syncState.rev=r.rev;db._rev=r.rev;syncState.mode='cloud';syncState.lastSync=now();syncState.error='';
+      forceCloudPull=false;
+      persistLocal();if(!boot)render();
+    }else if(syncState.rev>(r.rev||0)){
+      /* local is ahead (offline edits or first connect): push up */
+      await cloudPush();syncState.mode='cloud';
+    }else{syncState.mode='cloud';syncState.lastSync=now()}
+  }catch(e){syncState.error=e.message}
+  syncState.syncing=false;
+}
+const byId=(coll,id)=>db[coll].find(x=>x.id===id);
+const store=id=>byId('stores',id)||{name:'—',code:'—'};
+const loc=id=>byId('locations',id)||{binCode:'—',storeId:null};
+const person=id=>byId('people',id)||{name:'—'};
+const variant=id=>byId('variants',id)||{displayName:'—',colorName:'—'};
+const template=id=>byId('templates',id)||{displayName:'—'};
+function vname(vid){const v=variant(vid);const t=template(v.templateId);return (t.displayName||'—')+' · '+(v.colorName||'')}
+function me(){return byId('people',db.settings.personId)||db.people[0]||{id:null,name:'Guest',role:'admin'}}
+function myStore(){return byId('stores',db.settings.storeId)||db.stores[0]||null}
+function can(action){const r=me().role;const M={
+  receive:['admin','manager','warehouse','cutter'],adjust:['admin','manager','warehouse'],
+  cut:['admin','manager','warehouse','cutter'],move:['admin','manager','warehouse','cutter','sales'],
+  orders:['admin','manager','sales','warehouse'],deliver:['admin','manager','driver','sales','warehouse'],
+  catalog:['admin','manager','photographer'],print:['admin','manager','warehouse','cutter','sales','driver'],
+  sync:['admin','manager'],settings:['admin']};
+  return (M[action]||['admin']).includes(r)||r==='admin'}
+/* availability: rolls in truck/staging or in-transit transfers don't count as sellable */
+function rollAvail(r){return Math.max(0,(r.currentYards||0)-(r.reservedYards||0))}
+function rollSellable(r){const l=loc(r.locationId);return r.status!=='archived'&&r.status!=='hold'&&!['truck','staging'].includes(l.type)}
+/* ============ ledger ============ */
+function txn(roll,type,delta,opts={}){
+  const prev=roll.currentYards;
+  if(delta) roll.currentYards=Math.round((roll.currentYards+delta)*100)/100;
+  if(roll.currentYards<0)roll.currentYards=0;
+  db.transactions.unshift({id:uid(),code:nextCode('txn','TXN',7),rollId:roll.id,variantId:roll.variantId,
+    type,quantityYards:delta,previousYards:prev,newYards:roll.currentYards,
+    orderId:opts.orderId||null,lineItemId:opts.lineItemId||null,personId:me().id,
+    notes:opts.notes||'',createdAt:now()});
+  if(roll.currentYards<=0&&roll.reservedYards<=0&&['sale','damage','adjustment','transfer','sample_cut'].includes(type))roll.status='sold_out';
+  roll.updatedAt=now();
+}
+function moveRoll(roll,toLocId,reason){
+  db.rollHistory.unshift({id:uid(),rollId:roll.id,fromLocationId:roll.locationId,toLocationId:toLocId,
+    movedAt:now(),personId:me().id,reason:reason||'move'});
+  roll.locationId=toLocId;roll.updatedAt=now();
+}
+function scanEvent(entityType,entityId,action){db.scanEvents.unshift({id:uid(),entityType,entityId,action,personId:me().id,storeId:db.settings.storeId,at:now()})}
+function printJob(type,entityType,entityId,tpl){db.printJobs.unshift({id:uid(),type,entityType,entityId,template:tpl,copies:1,personId:me().id,at:now(),status:'printed'})}
+function syncLog(entityType,entityId,objType,dir,status,msg){db.syncLog.unshift({id:uid(),entityType,entityId,shopifyObjectType:objType,direction:dir,status,error:msg||'',at:now()})}
+/* ============ seed ============ */
+function seed(){
+  db=EMPTY();
+  const st1={id:uid(),code:'BUF',name:'Buffalo Warehouse',city:'Buffalo',active:true};
+  db.stores=[st1];
+  const mkloc=(stId,type,bin,zone)=>({id:uid(),storeId:stId,type,binCode:bin,zone:zone||'',qrValue:'BIN-'+bin,active:true});
+  const L={
+    receive:mkloc(st1.id,'bin','BUF-RECEIVING','Opening count'),
+    front:mkloc(st1.id,'shelf','BUF-FLOOR-A1','Sales floor'),back:mkloc(st1.id,'bin','BUF-BACK-B2','Backroom'),
+    stage:mkloc(st1.id,'staging','BUF-STAGE','Staging'),truck:mkloc(st1.id,'truck','BUF-VAN-1','Delivery van'),
+    a1:mkloc(st1.id,'bin','BUF-A-01-1','Zone A'),a2:mkloc(st1.id,'bin','BUF-A-01-2','Zone A'),
+    b1:mkloc(st1.id,'bin','BUF-B-02-1','Zone B'),wstage:mkloc(st1.id,'staging','BUF-DOCK-STAGE','Dock')};
+  db.locations=Object.values(L);
+  db.people=[
+    {id:uid(),name:'Aria',role:'warehouse',storeId:st1.id,canDeliver:false,active:true},
+    {id:uid(),name:'Aaron',role:'warehouse',storeId:st1.id,canDeliver:false,active:true},
+    {id:uid(),name:'Ben',role:'admin',storeId:st1.id,canDeliver:false,active:true}];
+  const sup={id:uid(),name:'Hangzhou Textile Co.',country:'China'};db.suppliers=[sup];
+  db.customers=[
+    {id:uid(),name:'Atelier Nouveau',type:'designer',email:'orders@ateliernv.com',address:'214 Grand St',city:'Brooklyn',state:'NY',postal:'11211'},
+    {id:uid(),name:'Rosa Martinez',type:'retail',email:'rosa.m@gmail.com',address:'88 5th Ave',city:'Brooklyn',state:'NY',postal:'11217'},
+    {id:uid(),name:'Stage & Screen Costumes',type:'wholesale',email:'buy@stagescreen.co',address:'40 W 27th St',city:'New York',state:'NY',postal:'10001'}];
+  const fam1={id:uid(),name:'Sequins',active:true},fam2={id:uid(),name:'Velvet',active:true},fam3={id:uid(),name:'Satin',active:true};
+  db.families=[fam1,fam2,fam3];
+  const ty1={id:uid(),familyId:fam1.id,name:'4-Way Stretch Sequins',defaultWidth:52,defaultStretch:'4-way',active:true};
+  const ty2={id:uid(),familyId:fam2.id,name:'Stretch Velvet',defaultWidth:58,defaultStretch:'2-way',active:true};
+  const ty3={id:uid(),familyId:fam3.id,name:'Bridal Satin',defaultWidth:60,defaultStretch:'non-stretch',active:true};
+  db.types=[ty1,ty2,ty3];
+  const mkT=(ty,code,name,mat,pat)=>({id:uid(),typeId:ty.id,code,name,displayName:name,description:'',patternPrint:pat,baseMaterial:mat,construction:'',stretch:byId('types',ty.id).defaultStretch,opacity:'opaque',widthIn:ty.defaultWidth,status:'active',createdAt:now(),updatedAt:now()});
+  const T1=mkT(ty1,'SQ-4W-CLASSIC','Classic 4-Way Sequin','Polyester/Spandex','solid');
+  const T2=mkT(ty2,'VL-STR-ROYAL','Royal Stretch Velvet','Polyester/Spandex','solid');
+  const T3=mkT(ty3,'ST-BRD-DUCH','Duchess Bridal Satin','Polyester','solid');
+  db.templates=[T1,T2,T3];
+  const mkV=(t,code,colorFam,color,hex,price,cost)=>({id:uid(),templateId:t.id,code,colorFamily:colorFam,colorName:color,hex,finish:'',displayName:t.displayName+' — '+color,
+    shopifySku:code,shopifyProductId:'',shopifyVariantId:'',pricePerYard:price,costPerYard:cost,
+    photo1Type:'overhead',photo1:'',photo2Type:'draped',photo2:'',photo3Type:'mannequin',photo3:'',active:true,createdAt:now(),updatedAt:now()});
+  const V=[
+    mkV(T1,'SQ4W-EMER','green','Emerald','#0f7a4d',24.99,9.10),
+    mkV(T1,'SQ4W-CHMP','gold','Champagne','#e8d3a2',24.99,9.10),
+    mkV(T1,'SQ4W-BLK','black','Black','#141414',22.99,8.40),
+    mkV(T2,'VLST-BURG','red','Burgundy','#6b1f2a',16.99,6.20),
+    mkV(T2,'VLST-NAVY','blue','Navy','#1d2a52',16.99,6.20),
+    mkV(T3,'STBD-IVRY','white','Ivory','#f4efe4',12.99,4.80)];
+  db.variants=V;
+  V.forEach(v=>{db.sellableSkus.push({id:uid(),variantId:v.id,sku:v.code+'-YD',type:'yard',uom:'yard',drawQty:1,price:v.pricePerYard,active:true});
+    db.sellableSkus.push({id:uid(),variantId:v.id,sku:v.code+'-SW',type:'sample',uom:'each',drawQty:0.125,price:2.5,active:true})});
+  const mkR=(v,yards,locId,lot,cond)=>{const code=nextCode('roll','ROLL');const r={id:uid(),variantId:v.id,code,lot:lot||'',qrValue:code,
+    originalYards:yards,currentYards:yards,reservedYards:0,widthIn:template(v.templateId).widthIn,condition:cond||'new',
+    receivedDate:today(),supplierId:sup.id,costPerYard:v.costPerYard,locationId:locId,status:'available',createdAt:now(),updatedAt:now()};
+    db.rolls.push(r);txn(r,'receive',0,{notes:'Seed receiving'});db.transactions[0].quantityYards=yards;db.transactions[0].previousYards=0;db.transactions[0].newYards=yards;
+    db.rollHistory.unshift({id:uid(),rollId:r.id,fromLocationId:null,toLocationId:locId,movedAt:now(),personId:db.people[0].id,reason:'receive'});return r};
+  mkR(V[0],42,L.a1.id,'LOT-2311');mkR(V[0],38,L.a1.id,'LOT-2311');mkR(V[0],11,L.front.id,'LOT-2298');
+  mkR(V[1],55,L.a2.id,'LOT-2312');mkR(V[1],7,L.front.id,'LOT-2290','partial');
+  mkR(V[2],60,L.a2.id,'LOT-2313');mkR(V[3],48,L.b1.id,'LOT-2301');mkR(V[3],4.5,L.back.id,'LOT-2288','remnant');
+  mkR(V[4],52,L.b1.id,'LOT-2302');mkR(V[5],75,L.b1.id,'LOT-2305');mkR(V[5],18,L.front.id,'LOT-2305');
+  db.settings.storeId=st1.id;db.settings.personId=(db.people.find(p=>p.name==='Ben')||db.people[0]).id;db.settings.lastScanLocationId=L.receive.id;db.settings.scanMode='inventory';
+  save();
+}
+</script>
+<script>
+/* ============ router & shell ============ */
+let route={page:'home',id:null,tab:null};
+function go(page,id,tab){route={page,id,tab:tab||null};render();window.scrollTo(0,0)}
+const NAV=[
+ ['home','Home','M3 11l9-8 9 8M5 9v11h5v-6h4v6h5V9'],
+ ['catalog','Catalog','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'],
+ ['rolls','Rolls','M12 3a9 9 0 100 18 9 9 0 000-18zM12 8a4 4 0 100 8 4 4 0 000-8z'],
+ ['orders','Orders','M6 3h12l1 4H5zM5 7h14v13H5zM9 11h6'],
+ ['more','More','M5 12h.01M12 12h.01M19 12h.01']];
+function renderNav(){
+  $('#bottomnav').innerHTML=NAV.map(([p,l,d])=>`<button class="${route.page===p||(p==='more'&&['locations','delivery','reports','sync','settings','transfers'].includes(route.page))?'on':''}" onclick="go('${p}')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>${l}</button>`).join('');
+}
+function renderHeader(){
+  $('#hdrStore').innerHTML=db.stores.map(s=>`<option value="${s.id}" ${s.id===db.settings.storeId?'selected':''}>${esc(s.code)}</option>`).join('');
+  $('#hdrPerson').innerHTML=db.people.filter(p=>p.active).map(p=>`<option value="${p.id}" ${p.id===db.settings.personId?'selected':''}>${esc(p.name.split(' ')[0])} · ${p.role}</option>`).join('');
+}
+function setStore(id){db.settings.storeId=id;save();render()}
+function setPerson(id){db.settings.personId=id;save();render()}
+function render(){
+  renderHeader();renderNav();
+  const P={home:vHome,catalog:vCatalog,template:vTemplate,variantd:vVariant,rolls:vRolls,roll:vRoll,
+    orders:vOrders,order:vOrder,more:vMore,locations:vLocations,transfers:vTransfers,transfer:vTransfer,
+    delivery:vDelivery,routed:vRoute,reports:vReports,sync:vSync,settings:vSettings,scan:vScan}[route.page]||vHome;
+  $('#view').innerHTML=P();
+  if(route.page==='scan')initScan();
+  drawQRs();
+}
+/* modal */
+function modal(title,body,actions){
+  $('#modalroot').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <h2>${esc(title)}<button class="x" onclick="closeModal()">×</button></h2>${body}
+    <div class="actions">${actions||''}</div></div></div>`;
+}
+function closeModal(){$('#modalroot').innerHTML='';stopScanStream()}
+function F(id){const el=document.getElementById(id);return el?el.value.trim():''}
+function FN(id){return parseFloat(F(id))||0}
+/* QR draw: any element with data-qr gets an SVG QR */
+function drawQRs(rootSel){
+  document.querySelectorAll((rootSel||'')+' [data-qr]').forEach(el=>{
+    if(el.dataset.done)return;
+    try{const q=qrcode(0,'M');q.addData(el.dataset.qr);q.make();
+      el.innerHTML=q.createSvgTag({cellSize:3,margin:0,scalable:true});el.dataset.done='1';
+      if(el.dataset.qrsize){const s=el.dataset.qrsize+'px';const svg=el.querySelector('svg');if(svg){svg.style.width=s;svg.style.height=s;svg.style.display='block'}}
+    }catch(e){el.innerHTML='<div class="mono sm">'+esc(el.dataset.qr)+'</div>'}
+  });
+}
+/* selectors */
+function selOpts(coll,valFn,labelFn,selected){return db[coll].map(x=>`<option value="${x.id}" ${x.id===selected?'selected':''}>${esc(labelFn(x))}</option>`).join('')}
+function locOpts(selected,storeFilter){return db.locations.filter(l=>l.active&&(!storeFilter||l.storeId===storeFilter)).map(l=>`<option value="${l.id}" ${l.id===selected?'selected':''}>${esc(store(l.storeId).code+' · '+l.binCode)}</option>`).join('')}
+/* ============ HOME ============ */
+function vHome(){
+  if(db.rolls.length===0&&db.variants.length===0){
+    return `<div class="empty"><div class="big">Welcome to Fabric Ops</div>
+      <p class="muted" style="margin-bottom:16px">Roll-level fabric inventory, QR workflows, orders, transfers and delivery — built to replace ERPLY.</p>
+      <button class="btn block" onclick="startWarehouseInventory()">Start warehouse inventory scan</button>
+      <div style="height:8px"></div>
+      <button class="btn block" onclick="seed();render();toast('Demo data loaded')">Load demo data</button>
+      <div style="height:8px"></div>
+      <button class="btn ghost block" onclick="go('settings')">Start empty — open settings</button></div>`;
+  }
+  const sid=db.settings.storeId;
+  const hereLocs=db.locations.filter(l=>l.storeId===sid).map(l=>l.id);
+  const hereRolls=db.rolls.filter(r=>hereLocs.includes(r.locationId)&&r.status!=='archived');
+  const avail=hereRolls.filter(rollSellable).reduce((a,r)=>a+rollAvail(r),0);
+  const reserved=hereRolls.reduce((a,r)=>a+(r.reservedYards||0),0);
+  const openOrders=db.orders.filter(o=>!['completed','canceled'].includes(o.status));
+  const inTransit=db.transfers.filter(t=>t.status==='in_transit');
+  const low=lowStock().slice(0,4);
+  const recentTx=db.transactions.slice(0,6);
+  return `<div class="page-title">${esc(store(sid).name)}</div>
+  <div class="stats">
+    <div class="stat"><div class="n">${fmt(avail)}</div><div class="l">Yards available here</div></div>
+    <div class="stat"><div class="n">${fmt(reserved)}</div><div class="l">Yards reserved</div></div>
+    <div class="stat tap" onclick="go('orders')"><div class="n">${openOrders.length}</div><div class="l">Open orders</div></div>
+    <div class="stat tap" onclick="go('transfers')"><div class="n">${inTransit.length}</div><div class="l">Transfers in transit</div></div>
+  </div>
+  <div class="row" style="margin-bottom:12px">
+    <button class="btn" onclick="mReceiveRoll()">+ Receive roll</button>
+    <button class="btn sec" onclick="mNewOrder()">+ Order</button>
+    <button class="btn ghost" onclick="go('scan')">Scan / count</button>
+  </div>
+  ${low.length?`<div class="card"><h3>Low stock <span class="badge b-warn">${low.length}</span></h3>
+    ${low.map(x=>`<div class="li tap" onclick="go('rolls',null,'${x.v.id}')">
+      <div class="swatch" style="background:${x.v.hex||'#eee'}"></div>
+      <div class="grow"><div class="t">${esc(vname(x.v.id))}</div><div class="s">${fmt(x.avail)} yd available company-wide</div></div>
+      <span class="badge b-warn">${fmt(x.avail)} yd</span></div>`).join('')}</div>`:''}
+  <div class="card"><h3>Recent activity</h3>
+    ${recentTx.length?recentTx.map(t=>{const r=byId('rolls',t.rollId)||{};return `<div class="li tap" onclick="go('roll','${t.rollId}')">
+      <div class="grow"><div class="t">${esc(txnLabel(t.type))} · ${t.quantityYards>0?'+':''}${fmt(t.quantityYards)} yd</div>
+      <div class="s">${esc(r.code||'')} · ${esc(vname(t.variantId))}</div></div>
+      <span class="sm muted">${dshort(t.createdAt)}</span></div>`}).join(''):'<div class="muted sm">No transactions yet.</div>'}
+  </div>`;
+}
+function txnLabel(t){return{receive:'Received',sale:'Cut / sold',sample_cut:'Sample cut',adjustment:'Adjustment',damage:'Damage',return:'Return',transfer:'Transfer',reserve:'Reserved',release_reservation:'Reservation released',cycle_count_variance:'Count variance'}[t]||t}
+function lowStock(){
+  const th=db.settings.lowStockYards||15;const out=[];
+  db.variants.filter(v=>v.active).forEach(v=>{
+    const avail=db.rolls.filter(r=>r.variantId===v.id&&rollSellable(r)).reduce((a,r)=>a+rollAvail(r),0);
+    if(avail<th)out.push({v,avail});
+  });return out.sort((a,b)=>a.avail-b.avail);
+}
+/* ============ MORE ============ */
+function vMore(){
+  const items=[['locations','Locations & bins','Stores, bins, racks, vehicles'],['transfers','Transfers','Store ↔ warehouse movement'],
+    ['delivery','Delivery','Routes, stops, proof of delivery'],['reports','Reports','Stock, valuation, completeness'],
+    ['sync','Sync & export','Shopify · QuickBooks · ERPLY'],['settings','Settings','People, thresholds, data']];
+  return `<div class="page-title">More</div><div class="card">${items.map(([p,t,s])=>`
+    <div class="li tap" onclick="go('${p}')"><div class="grow"><div class="t">${t}</div><div class="s">${s}</div></div><span class="muted">›</span></div>`).join('')}</div>
+    <div class="muted sm" style="text-align:center">Signed in as ${esc(me().name)} (${me().role}) · ${db.transactions.length} ledger entries</div>`;
+}
+</script>
+<script>
+/* ============ CATALOG ============ */
+let catQ='';
+function vCatalog(){
+  const q=catQ.toLowerCase();
+  const temps=db.templates.filter(t=>!q||t.displayName.toLowerCase().includes(q)||t.code.toLowerCase().includes(q));
+  return `<div class="page-title">Catalog</div>
+  <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+  <input placeholder="Search products…" value="${esc(catQ)}" oninput="catQ=this.value;render();this.focus();this.setSelectionRange(this.value.length,this.value.length)"></div>
+  ${can('catalog')?`<div class="row" style="margin-bottom:10px"><button class="btn small" onclick="mNewTemplate()">+ Product</button>
+  <button class="btn sec small" onclick="mNewFamilyType()">+ Family / type</button></div>`:''}
+  ${temps.length?temps.map(t=>{
+    const vs=db.variants.filter(v=>v.templateId===t.id);
+    const ty=byId('types',t.typeId)||{};
+    return `<div class="card tap" onclick="go('template','${t.id}')">
+      <div class="row"><div class="grow"><b>${esc(t.displayName)}</b>
+        <div class="sm muted">${esc(ty.name||'')} · ${t.widthIn||'—'}" · <span class="mono">${esc(t.code)}</span></div></div>
+        <span class="badge ${t.status==='active'?'b-ok':'b-mut'}">${t.status}</span></div>
+      <div class="row" style="margin-top:8px">${vs.slice(0,8).map(v=>`<div class="swatch" title="${esc(v.colorName)}" style="width:26px;height:26px;background:${v.hex||'#eee'}"></div>`).join('')}
+      <span class="sm muted">${vs.length} color${vs.length!==1?'s':''}</span></div></div>`}).join('')
+  :'<div class="empty"><div class="big">No products</div><p class="muted">Add a product template to start the catalog.</p></div>'}`;
+}
+function vTemplate(){
+  const t=byId('templates',route.id);if(!t)return vCatalog();
+  const ty=byId('types',t.typeId)||{};const fam=byId('families',ty.familyId)||{};
+  const vs=db.variants.filter(v=>v.templateId===t.id);
+  return `<div class="page-title"><span class="tap" onclick="go('catalog')">Catalog</span> / ${esc(t.code)}</div>
+  <div class="card"><div class="row"><div class="grow"><h3>${esc(t.displayName)}</h3>
+    <div class="sm muted">${esc(fam.name||'')} → ${esc(ty.name||'')}</div></div>
+    ${can('catalog')?`<button class="btn ghost small" onclick="mEditTemplate('${t.id}')">Edit</button>`:''}</div>
+    <div class="sm" style="margin-top:8px">${['baseMaterial','patternPrint','stretch','opacity'].map(k=>t[k]?`<span class="chip" style="margin-right:4px">${esc(t[k])}</span>`:'').join('')}
+    ${t.widthIn?`<span class="chip">${t.widthIn}" wide</span>`:''}</div>
+    ${t.description?`<p class="sm" style="margin-top:8px">${esc(t.description)}</p>`:''}</div>
+  <div class="row" style="margin-bottom:10px"><b>Color variants</b>
+    ${can('catalog')?`<button class="btn small right" onclick="mNewVariant('${t.id}')">+ Variant</button>`:''}</div>
+  ${vs.map(v=>{
+    const rolls=db.rolls.filter(r=>r.variantId===v.id&&r.status!=='archived');
+    const avail=rolls.filter(rollSellable).reduce((a,r)=>a+rollAvail(r),0);
+    const photos=[v.photo1,v.photo2,v.photo3].filter(Boolean).length;
+    return `<div class="card tap" onclick="go('variantd','${v.id}')">
+      <div class="row"><div class="swatch" style="background:${v.hex||'#eee'}"></div>
+      <div class="grow"><div class="t" style="font-weight:600">${esc(v.colorName)} <span class="sm muted mono">${esc(v.code)}</span></div>
+      <div class="s sm muted">${money(v.pricePerYard)}/yd · ${rolls.length} roll${rolls.length!==1?'s':''} · ${fmt(avail)} yd avail</div></div>
+      <span class="badge ${photos===3?'b-ok':'b-hold'}">${photos}/3 photos</span></div></div>`}).join('')||'<div class="muted sm">No variants yet.</div>'}`;
+}
+function vVariant(){
+  const v=byId('variants',route.id);if(!v)return vCatalog();
+  const t=template(v.templateId);
+  const rolls=db.rolls.filter(r=>r.variantId===v.id&&r.status!=='archived');
+  const skus=db.sellableSkus.filter(s=>s.variantId===v.id);
+  const photoRows=[1,2,3].map(i=>{
+    const type=v['photo'+i+'Type']||'',url=v['photo'+i]||'';
+    return `<tr><td><span class="chip">${esc(type||'slot '+i)}</span></td>
+      <td class="sm" style="word-break:break-all">${url?`<a href="${esc(url)}" target="_blank">${esc(url.length>34?url.slice(0,34)+'…':url)}</a>`:'<span class="muted">— missing</span>'}</td></tr>`}).join('');
+  return `<div class="page-title"><span class="tap" onclick="go('template','${v.templateId}')">${esc(t.code||'Product')}</span> / ${esc(v.code)}</div>
+  <div class="card"><div class="row"><div class="swatch" style="width:44px;height:44px;background:${v.hex||'#eee'}"></div>
+    <div class="grow"><h3>${esc(v.displayName)}</h3><div class="sm muted">${money(v.pricePerYard)}/yd · cost ${money(v.costPerYard)}/yd</div></div>
+    ${can('catalog')?`<button class="btn ghost small" onclick="mEditVariant('${v.id}')">Edit</button>`:''}</div></div>
+  <div class="card"><div class="row"><h3>Listing photos</h3>
+    ${can('catalog')?`<button class="btn sec small right" onclick="mPhotos('${v.id}')">Edit photos</button>`:''}</div>
+    <table class="tbl">${photoRows}</table></div>
+  <div class="card"><h3>Sellable SKUs</h3>
+    ${skus.map(s=>`<div class="li"><div class="grow"><div class="t mono sm">${esc(s.sku)}</div>
+      <div class="s">${s.type} · draws ${fmt(s.drawQty)} yd/unit</div></div><b>${money(s.price)}</b></div>`).join('')||'<span class="muted sm">None.</span>'}
+    ${can('catalog')?`<button class="btn ghost small block" style="margin-top:8px" onclick="mNewSku('${v.id}')">+ Sellable SKU</button>`:''}</div>
+  <div class="card"><div class="row"><h3>Physical rolls</h3>
+    ${can('receive')?`<button class="btn small right" onclick="mReceiveRoll('${v.id}')">+ Receive</button>`:''}</div>
+    ${rolls.map(r=>rollRow(r)).join('')||'<span class="muted sm">No rolls in stock.</span>'}</div>
+  <div class="card"><h3>Shopify</h3><div class="sm mono">SKU ${esc(v.shopifySku||'—')} · product ${esc(v.shopifyProductId||'not linked')} </div>
+    <button class="btn sec small" style="margin-top:8px" onclick="pushVariantShopify('${v.id}')">Mark pushed to Shopify</button></div>`;
+}
+function rollRow(r){
+  const l=loc(r.locationId);const av=rollAvail(r);
+  return `<div class="li tap" onclick="go('roll','${r.id}')">
+    <div class="grow"><div class="t mono sm">${esc(r.code)} ${r.lot?'· '+esc(r.lot):''}</div>
+      <div class="ybar" title="${fmt(av)} available">${ybar(r)}</div>
+      <div class="s">${fmt(av)} avail / ${fmt(r.currentYards)} on roll · ${esc(store(l.storeId).code)} ${esc(l.binCode)}</div></div>
+    <span class="badge ${r.condition==='new'?'b-ok':r.condition==='remnant'||r.condition==='partial'?'b-hold':'b-warn'}">${r.condition}</span></div>`;
+}
+function ybar(r){
+  const max=Math.max(r.originalYards||1,r.currentYards||0)||1;
+  const availPct=Math.max(0,(r.currentYards-r.reservedYards))/max*100;
+  const resPct=(r.reservedYards||0)/max*100;
+  return `<span class="cur" style="width:${availPct}%"></span><span class="res" style="width:${resPct}%"></span>`;
+}
+/* catalog modals */
+function mNewFamilyType(){
+  modal('Family & type',`
+    <label>New family name (optional)</label><input id="f_fam" placeholder="e.g. Lace">
+    <label>New type</label><input id="f_type" placeholder="e.g. Corded Lace">
+    <label>Under family</label><select id="f_famsel">${db.families.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('')}<option value="__new">↳ the new family above</option></select>
+    <div class="grid2"><div><label>Default width (in)</label><input id="f_w" type="number" value="58"></div>
+    <div><label>Stretch</label><input id="f_s" value="non-stretch"></div></div>`,
+    `<button class="btn" onclick="saveFamilyType()">Save</button>`);
+}
+function saveFamilyType(){
+  let famId=F('f_famsel');
+  if(F('f_fam')){const f={id:uid(),name:F('f_fam'),active:true};db.families.push(f);if(famId==='__new')famId=f.id}
+  if(famId==='__new'){toast('Name the new family first');return}
+  if(F('f_type'))db.types.push({id:uid(),familyId:famId,name:F('f_type'),defaultWidth:FN('f_w')||58,defaultStretch:F('f_s'),active:true});
+  save();closeModal();render();toast('Saved');
+}
+function templateForm(t){t=t||{};return `
+  <label>Type</label><select id="t_type">${db.types.map(x=>`<option value="${x.id}" ${x.id===t.typeId?'selected':''}>${esc((byId('families',x.familyId)||{}).name||'')} → ${esc(x.name)}</option>`).join('')}</select>
+  <div class="grid2"><div><label>Code</label><input id="t_code" value="${esc(t.code||'')}" placeholder="SQ-4W-001"></div>
+  <div><label>Width (in)</label><input id="t_w" type="number" value="${t.widthIn||''}"></div></div>
+  <label>Display name</label><input id="t_name" value="${esc(t.displayName||'')}">
+  <div class="grid2"><div><label>Base material</label><input id="t_mat" value="${esc(t.baseMaterial||'')}"></div>
+  <div><label>Pattern</label><input id="t_pat" value="${esc(t.patternPrint||'')}"></div></div>
+  <div class="grid2"><div><label>Stretch</label><input id="t_str" value="${esc(t.stretch||'')}"></div>
+  <div><label>Opacity</label><input id="t_op" value="${esc(t.opacity||'')}"></div></div>
+  <label>Description</label><textarea id="t_desc" rows="2">${esc(t.description||'')}</textarea>
+  <label>Status</label><select id="t_status">${['draft','active','discontinued','archived'].map(s=>`<option ${s===(t.status||'active')?'selected':''}>${s}</option>`).join('')}</select>`}
+function mNewTemplate(){if(!db.types.length){mNewFamilyType();return}modal('New product',templateForm(),`<button class="btn" onclick="saveTemplate()">Create</button>`)}
+function mEditTemplate(id){modal('Edit product',templateForm(byId('templates',id)),`<button class="btn" onclick="saveTemplate('${id}')">Save</button>`)}
+function saveTemplate(id){
+  const t=id?byId('templates',id):{id:uid(),createdAt:now()};
+  Object.assign(t,{typeId:F('t_type'),code:F('t_code'),displayName:F('t_name'),name:F('t_name'),baseMaterial:F('t_mat'),
+    patternPrint:F('t_pat'),stretch:F('t_str'),opacity:F('t_op'),description:F('t_desc'),widthIn:FN('t_w'),status:F('t_status'),updatedAt:now()});
+  if(!t.code||!t.displayName){toast('Code and name required');return}
+  if(!id)db.templates.push(t);save();closeModal();go('template',t.id);toast('Saved');
+}
+function variantForm(v){v=v||{};return `
+  <div class="grid2"><div><label>Variant code</label><input id="v_code" value="${esc(v.code||'')}" placeholder="SQ4W-EMER"></div>
+  <div><label>Hex swatch</label><input id="v_hex" value="${esc(v.hex||'')}" placeholder="#0f7a4d"></div></div>
+  <div class="grid2"><div><label>Color family</label><input id="v_cf" value="${esc(v.colorFamily||'')}" placeholder="green"></div>
+  <div><label>Color name</label><input id="v_cn" value="${esc(v.colorName||'')}" placeholder="Emerald"></div></div>
+  <div class="grid2"><div><label>Price / yd</label><input id="v_p" type="number" step="0.01" value="${v.pricePerYard||''}"></div>
+  <div><label>Cost / yd</label><input id="v_c" type="number" step="0.01" value="${v.costPerYard||''}"></div></div>
+  <label>Shopify SKU</label><input id="v_sku" value="${esc(v.shopifySku||'')}">`}
+function mNewVariant(tid){modal('New variant',variantForm(),`<button class="btn" onclick="saveVariant(null,'${tid}')">Create</button>`)}
+function mEditVariant(id){modal('Edit variant',variantForm(byId('variants',id)),`<button class="btn" onclick="saveVariant('${id}')">Save</button>`)}
+function saveVariant(id,tid){
+  const v=id?byId('variants',id):{id:uid(),templateId:tid,photo1Type:'overhead',photo2Type:'draped',photo3Type:'mannequin',photo1:'',photo2:'',photo3:'',active:true,createdAt:now()};
+  Object.assign(v,{code:F('v_code'),hex:F('v_hex'),colorFamily:F('v_cf'),colorName:F('v_cn'),
+    pricePerYard:FN('v_p'),costPerYard:FN('v_c'),shopifySku:F('v_sku')||F('v_code'),updatedAt:now()});
+  v.displayName=template(v.templateId).displayName+' — '+v.colorName;
+  if(!v.code||!v.colorName){toast('Code and color required');return}
+  if(!id){db.variants.push(v);db.sellableSkus.push({id:uid(),variantId:v.id,sku:v.code+'-YD',type:'yard',uom:'yard',drawQty:1,price:v.pricePerYard,active:true})}
+  save();closeModal();go('variantd',v.id);toast('Saved');
+}
+const PHOTO_TYPES=['overhead','draped','mannequin','swatch','closeup','texture','stretch','roll','defect','label','alternate'];
+function mPhotos(id){
+  const v=byId('variants',id);
+  modal('Listing photos — '+v.colorName,[1,2,3].map(i=>`
+    <label>Slot ${i} type</label><select id="p_t${i}">${PHOTO_TYPES.map(p=>`<option ${p===(v['photo'+i+'Type']||'')?'selected':''}>${p}</option>`).join('')}</select>
+    <label>Slot ${i} URL or path</label><input id="p_u${i}" value="${esc(v['photo'+i]||'')}" placeholder="https://… or /photos/…">`).join(''),
+    `<button class="btn" onclick="savePhotos('${id}')">Save photos</button>`);
+}
+function savePhotos(id){const v=byId('variants',id);[1,2,3].forEach(i=>{v['photo'+i+'Type']=F('p_t'+i);v['photo'+i]=F('p_u'+i)});v.updatedAt=now();save();closeModal();render();toast('Photos saved')}
+function mNewSku(vid){
+  modal('New sellable SKU',`
+    <label>SKU</label><input id="s_sku">
+    <label>Type</label><select id="s_type">${['yard','sample','panel','bundle'].map(t=>`<option>${t}</option>`).join('')}</select>
+    <div class="grid2"><div><label>Yards drawn / unit</label><input id="s_draw" type="number" step="0.001" value="1"></div>
+    <div><label>Price</label><input id="s_p" type="number" step="0.01"></div></div>`,
+    `<button class="btn" onclick="saveSku('${vid}')">Create</button>`);
+}
+function saveSku(vid){
+  if(!F('s_sku')){toast('SKU required');return}
+  db.sellableSkus.push({id:uid(),variantId:vid,sku:F('s_sku'),type:F('s_type'),uom:F('s_type')==='yard'?'yard':'each',drawQty:FN('s_draw')||1,price:FN('s_p'),active:true});
+  save();closeModal();render();toast('SKU added');
+}
+function pushVariantShopify(id){
+  const v=byId('variants',id);
+  if(!v.shopifyProductId)v.shopifyProductId='pending-'+v.code;
+  syncLog('variant',id,'product','push','success','');save();render();toast('Logged Shopify push — connect the sync worker for live API pushes');
+}
+</script>
+<script>
+/* ============ ROLLS ============ */
+let rollQ='',rollFilter='all';
+function vRolls(){
+  const q=rollQ.toLowerCase();const vfilter=route.tab;
+  let rolls=db.rolls.filter(r=>r.status!=='archived');
+  if(vfilter)rolls=rolls.filter(r=>r.variantId===vfilter);
+  if(rollFilter==='here'){const ls=db.locations.filter(l=>l.storeId===db.settings.storeId).map(l=>l.id);rolls=rolls.filter(r=>ls.includes(r.locationId))}
+  if(rollFilter==='remnants')rolls=rolls.filter(r=>['remnant','partial'].includes(r.condition));
+  if(rollFilter==='damaged')rolls=rolls.filter(r=>r.condition==='damaged'||r.status==='hold');
+  if(q)rolls=rolls.filter(r=>r.code.toLowerCase().includes(q)||(r.lot||'').toLowerCase().includes(q)||vname(r.variantId).toLowerCase().includes(q));
+  rolls=rolls.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  return `<div class="page-title">Rolls ${vfilter?'· '+esc(vname(vfilter)):''}</div>
+  <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+  <input placeholder="Search roll, lot, product…" value="${esc(rollQ)}" oninput="rollQ=this.value;render();this.focus();this.setSelectionRange(this.value.length,this.value.length)"></div>
+  <div class="tabs">${[['all','All'],['here','At '+(myStore()||{}).code],['remnants','Remnants'],['damaged','Damaged/hold']].map(([k,l])=>`<button class="${rollFilter===k?'on':''}" onclick="rollFilter='${k}';render()">${l}</button>`).join('')}</div>
+  ${can('receive')?`<button class="btn block" style="margin-bottom:10px" onclick="mReceiveRoll()">+ Receive roll</button>`:''}
+  <div class="card">${rolls.length?rolls.map(r=>{
+    const v=variant(r.variantId);
+    return `<div class="li tap" onclick="go('roll','${r.id}')">
+      <div class="swatch" style="background:${v.hex||'#eee'}"></div>
+      <div class="grow"><div class="t">${esc(vname(r.variantId))}</div>
+      <div class="ybar">${ybar(r)}</div>
+      <div class="s"><span class="mono">${esc(r.code)}</span> · ${fmt(rollAvail(r))} avail · ${esc(loc(r.locationId).binCode)}</div></div>
+      </div>`}).join(''):'<div class="empty"><div class="big">No rolls</div><p class="muted">Receive your first roll to start tracking.</p></div>'}</div>`;
+}
+function vRoll(){
+  const r=byId('rolls',route.id);if(!r)return vRolls();
+  const v=variant(r.variantId);const l=loc(r.locationId);const st=store(l.storeId);
+  const tx=db.transactions.filter(t=>t.rollId===r.id).slice(0,15);
+  const hist=db.rollHistory.filter(h=>h.rollId===r.id).slice(0,8);
+  const allocs=db.allocations.filter(a=>a.rollId===r.id&&a.status==='reserved');
+  return `<div class="page-title"><span class="tap" onclick="go('rolls')">Rolls</span> / ${esc(r.code)}</div>
+  <div class="ticket">
+    <div class="th"><span class="code">${esc(r.code)}</span>
+      <span class="badge ${r.status==='available'?'b-ok':r.status==='sold_out'?'b-mut':'b-hold'}" style="margin-left:auto">${r.status.replace('_',' ')}</span></div>
+    <div class="tb"><div class="row">
+      <div class="grow"><b>${esc(vname(r.variantId))}</b>
+        <div class="sm muted">${r.lot?'Lot '+esc(r.lot)+' · ':''}${r.widthIn||'—'}" wide · received ${esc(r.receivedDate||'—')}</div>
+        <div class="ybar" style="height:14px">${ybar(r)}</div>
+        <div class="ylegend"><span><i style="background:var(--indigo)"></i>${fmt(rollAvail(r))} yd available</span>
+        <span><i style="background:var(--selvage)"></i>${fmt(r.reservedYards)} reserved</span>
+        <span>${fmt(r.originalYards)} original</span></div>
+        <div class="sm" style="margin-top:8px">📍 <b>${esc(st.name)}</b> · ${esc(l.binCode)} <span class="badge b-ind">${esc(l.type)}</span></div>
+        ${r.condition!=='new'?`<div class="sm" style="margin-top:4px"><span class="badge b-hold">${r.condition}</span> ${esc(r.damageNotes||'')}</div>`:''}</div>
+      <div class="qrbox" data-qr="${esc(r.qrValue||r.code)}"></div></div></div>
+    <div class="selvage-strip"></div>
+  </div>
+  <div class="row" style="margin-bottom:12px">
+    ${can('cut')?`<button class="btn small" onclick="mCut('${r.id}')">✂ Cut</button>`:''}
+    ${can('move')?`<button class="btn sec small" onclick="mMove('${r.id}')">Move</button>`:''}
+    ${can('adjust')?`<button class="btn ghost small" onclick="mAdjust('${r.id}')">Adjust</button>`:''}
+    ${can('adjust')?`<button class="btn ghost small" onclick="mReserve('${r.id}')">Reserve</button>`:''}
+    ${can('adjust')?`<button class="btn danger small" onclick="mDamage('${r.id}')">Damage</button>`:''}
+    ${can('print')?`<button class="btn ghost small" onclick="printRollLabel('${r.id}')">🖨 Label</button>`:''}
+  </div>
+  ${allocs.length?`<div class="card"><h3>Reservations on this roll</h3>${allocs.map(a=>{
+    const li=byId('lineItems',a.lineItemId)||{};const o=byId('orders',li.orderId)||{};
+    return `<div class="li tap" onclick="go('order','${o.id}')"><div class="grow"><div class="t">${esc(o.number||'Manual hold')}</div>
+    <div class="s">${fmt(a.allocatedYards)} yd reserved ${a.notes?'· '+esc(a.notes):''}</div></div>
+    <button class="btn ghost small" onclick="event.stopPropagation();releaseAlloc('${a.id}')">Release</button></div>`}).join('')}</div>`:''}
+  <div class="card"><h3>Ledger</h3><div class="tblwrap"><table class="tbl">
+    <tr><th>When</th><th>Type</th><th>Δ yd</th><th>After</th><th>By</th></tr>
+    ${tx.map(t=>`<tr><td class="sm">${dshort(t.createdAt)}</td><td>${esc(txnLabel(t.type))}${t.notes?`<div class="sm muted">${esc(t.notes)}</div>`:''}</td>
+      <td class="mono">${t.quantityYards>0?'+':''}${fmt(t.quantityYards)}</td><td class="mono">${fmt(t.newYards)}</td><td class="sm">${esc(person(t.personId).name.split(' ')[0])}</td></tr>`).join('')}
+  </table></div></div>
+  <div class="card"><h3>Movement history</h3>
+    ${hist.map(h=>`<div class="li"><div class="grow"><div class="t sm">${esc(loc(h.fromLocationId).binCode||'—')} → ${esc(loc(h.toLocationId).binCode)}</div>
+    <div class="s">${esc(h.reason||'')} · ${esc(person(h.personId).name)}</div></div><span class="sm muted">${dshort(h.movedAt)}</span></div>`).join('')||'<span class="muted sm">No moves recorded.</span>'}</div>`;
+}
+/* roll modals */
+function mReceiveRoll(vid){
+  if(!db.variants.length){toast('Create a product variant first');go('catalog');return}
+  modal('Receive roll',`
+    <label>Variant</label><select id="r_v">${db.variants.filter(v=>v.active).map(v=>`<option value="${v.id}" ${v.id===vid?'selected':''}>${esc(vname(v.id))}</option>`).join('')}</select>
+    <div class="grid2"><div><label>Yards</label><input id="r_y" type="number" step="0.25" inputmode="decimal"></div>
+    <div><label>Lot #</label><input id="r_lot"></div></div>
+    <label>Location / bin</label><select id="r_loc">${locOpts(null)}</select>
+    <div class="grid2"><div><label>Cost / yd</label><input id="r_c" type="number" step="0.01"></div>
+    <div><label>Condition</label><select id="r_cond">${['new','partial','remnant','damaged'].map(c=>`<option>${c}</option>`).join('')}</select></div></div>
+    <label>Supplier</label><select id="r_sup"><option value="">—</option>${db.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>`,
+    `<button class="btn" onclick="saveReceive()">Receive & label</button>`);
+}
+function saveReceive(){
+  const yards=FN('r_y');if(yards<=0){toast('Enter yardage');return}
+  const v=byId('variants',F('r_v'));
+  const code=nextCode('roll','ROLL');
+  const r={id:uid(),variantId:v.id,code,lot:F('r_lot'),qrValue:code,originalYards:yards,currentYards:0,reservedYards:0,
+    widthIn:template(v.templateId).widthIn,condition:F('r_cond'),receivedDate:today(),supplierId:F('r_sup')||null,
+    costPerYard:FN('r_c')||v.costPerYard,locationId:F('r_loc'),status:'available',createdAt:now(),updatedAt:now()};
+  db.rolls.push(r);txn(r,'receive',yards,{notes:'Received'+(r.lot?' lot '+r.lot:'')});
+  moveRoll(r,r.locationId,'receive');r.locationId=F('r_loc');
+  save();closeModal();go('roll',r.id);toast(code+' received');
+  setTimeout(()=>printRollLabel(r.id,true),400);
+}
+function mCut(id){
+  const r=byId('rolls',id);
+  const allocs=db.allocations.filter(a=>a.rollId===id&&a.status==='reserved');
+  modal('Cut from '+r.code,`
+    <div class="sm muted">${fmt(r.currentYards)} yd on roll · ${fmt(r.reservedYards)} reserved</div>
+    ${allocs.length?`<label>Against reservation</label><select id="c_alloc"><option value="">Ad-hoc cut (walk-in / sample)</option>
+      ${allocs.map(a=>{const li=byId('lineItems',a.lineItemId)||{};const o=byId('orders',li.orderId)||{};
+      return `<option value="${a.id}">${esc(o.number||'hold')} — ${fmt(a.allocatedYards)} yd reserved</option>`}).join('')}</select>`:'<input type="hidden" id="c_alloc" value="">'}
+    <label>Yards cut</label><input id="c_y" type="number" step="0.125" inputmode="decimal">
+    <label>Cut type</label><select id="c_type"><option value="sale">sale</option><option value="sample_cut">sample_cut</option></select>
+    <label>Notes</label><input id="c_n" placeholder="Order, customer, reason…">
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:14px;font-weight:500">
+      <input type="checkbox" id="c_rem" style="width:auto"> Split remainder off as a new remnant roll</label>`,
+    `<button class="btn" onclick="saveCut('${id}')">Record cut</button>`);
+}
+function saveCut(id){
+  const r=byId('rolls',id);const y=FN('c_y');
+  if(y<=0||y>r.currentYards){toast('Invalid yardage');return}
+  const aId=F('c_alloc');
+  txn(r,F('c_type'),-y,{notes:F('c_n')});
+  if(aId){const a=byId('allocations',aId);
+    a.cutYards=(a.cutYards||0)+y;a.status='cut';a.cutAt=now();
+    r.reservedYards=Math.max(0,r.reservedYards-a.allocatedYards);
+    const li=byId('lineItems',a.lineItemId);if(li){li.status='cut';advanceOrder(li.orderId)}
+    db.transactions[0].orderId=li?li.orderId:null;db.transactions[0].lineItemId=a.lineItemId;
+  }
+  if(document.getElementById('c_rem')&&document.getElementById('c_rem').checked&&r.currentYards>0){
+    const remYards=r.currentYards;
+    txn(r,'adjustment',-remYards,{notes:'Split to remnant'});
+    const code=nextCode('roll','ROLL');
+    const rem={id:uid(),variantId:r.variantId,code,lot:r.lot,qrValue:code,parentRollId:r.id,
+      originalYards:remYards,currentYards:0,reservedYards:0,widthIn:r.widthIn,condition:'remnant',receivedDate:today(),
+      supplierId:r.supplierId,costPerYard:r.costPerYard,locationId:r.locationId,status:'available',createdAt:now(),updatedAt:now()};
+    db.rolls.push(rem);txn(rem,'receive',remYards,{notes:'Remnant from '+r.code});
+    r.status='sold_out';
+    toast('Remnant '+code+' created');
+    setTimeout(()=>printRollLabel(rem.id,true),400);
+  }
+  save();closeModal();render();
+}
+function mMove(id){
+  const r=byId('rolls',id);
+  modal('Move '+r.code,`
+    <label>To location</label><select id="m_loc">${locOpts(r.locationId)}</select>
+    <label>Reason</label><select id="m_r">${['move','picking','restock','audit','return','staging'].map(x=>`<option>${x}</option>`).join('')}</select>`,
+    `<button class="btn" onclick="saveMove('${id}')">Move roll</button>`);
+}
+function saveMove(id){const r=byId('rolls',id);const to=F('m_loc');if(to===r.locationId){toast('Already there');return}
+  moveRoll(r,to,F('m_r'));scanEvent('roll',id,'move');save();closeModal();render();toast('Moved to '+loc(to).binCode)}
+function mAdjust(id){
+  const r=byId('rolls',id);
+  modal('Adjust '+r.code,`
+    <div class="sm muted">System shows ${fmt(r.currentYards)} yd</div>
+    <label>Measured yards on roll</label><input id="a_y" type="number" step="0.125" value="${r.currentYards}" inputmode="decimal">
+    <label>Reason</label><input id="a_n" placeholder="Re-measure, count variance…">`,
+    `<button class="btn" onclick="saveAdjust('${id}')">Save adjustment</button>`);
+}
+function saveAdjust(id){const r=byId('rolls',id);const nY=FN('a_y');const d=Math.round((nY-r.currentYards)*100)/100;
+  if(d===0){closeModal();return}
+  txn(r,'adjustment',d,{notes:F('a_n')||'Manual adjustment'});
+  if(nY>0&&r.status==='sold_out')r.status='available';
+  save();closeModal();render();toast((d>0?'+':'')+fmt(d)+' yd adjusted')}
+function mReserve(id){
+  const r=byId('rolls',id);
+  modal('Reserve on '+r.code,`
+    <div class="sm muted">${fmt(rollAvail(r))} yd available</div>
+    <label>Yards to hold</label><input id="h_y" type="number" step="0.25" inputmode="decimal">
+    <label>Hold for</label><input id="h_n" placeholder="Customer / reason">`,
+    `<button class="btn" onclick="saveReserve('${id}')">Hold yards</button>`);
+}
+function saveReserve(id){
+  const r=byId('rolls',id);const y=FN('h_y');
+  if(y<=0||y>rollAvail(r)){toast('Not enough available');return}
+  r.reservedYards+=y;
+  db.allocations.push({id:uid(),lineItemId:null,rollId:id,allocatedYards:y,cutYards:0,status:'reserved',personId:me().id,allocatedAt:now(),notes:F('h_n')});
+  txn(r,'reserve',0,{notes:'Hold: '+F('h_n')});db.transactions[0].quantityYards=y;
+  save();closeModal();render();toast(fmt(y)+' yd reserved');
+}
+function releaseAlloc(aid){
+  const a=byId('allocations',aid);const r=byId('rolls',a.rollId);
+  r.reservedYards=Math.max(0,r.reservedYards-a.allocatedYards);a.status='released';
+  txn(r,'release_reservation',0,{notes:'Reservation released'});
+  const li=byId('lineItems',a.lineItemId);if(li)li.status='open';
+  save();render();toast('Reservation released');
+}
+function mDamage(id){
+  const r=byId('rolls',id);
+  modal('Report damage — '+r.code,`
+    <label>Yards written off</label><input id="d_y" type="number" step="0.25" value="0" inputmode="decimal">
+    <label>New condition</label><select id="d_c">${['damaged','partial','hold','new'].map(c=>`<option ${c===r.condition?'selected':''}>${c}</option>`).join('')}</select>
+    <label>Notes</label><textarea id="d_n" rows="2" placeholder="Water stain last 3 yards…"></textarea>`,
+    `<button class="btn danger" onclick="saveDamage('${id}')">Record damage</button>`);
+}
+function saveDamage(id){
+  const r=byId('rolls',id);const y=FN('d_y');
+  if(y>0)txn(r,'damage',-y,{notes:F('d_n')});
+  r.condition=F('d_c');r.damageNotes=F('d_n');
+  if(r.condition==='hold')r.status='hold';
+  save();closeModal();render();toast('Damage recorded');
+}
+</script>
+<script>
+/* ============ ORDERS ============ */
+const ORDER_FLOW=['open','reserved','cut','packed','staged','out_for_delivery','shipped','completed'];
+function vOrders(){
+  const tab=route.tab||'openx';
+  let os=db.orders.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  if(tab==='openx')os=os.filter(o=>!['completed','canceled'].includes(o.status));
+  if(tab==='done')os=os.filter(o=>['completed','canceled'].includes(o.status));
+  return `<div class="page-title">Orders</div>
+  <div class="tabs">${[['openx','Open'],['done','Completed'],['all','All']].map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="go('orders',null,'${k}')">${l}</button>`).join('')}</div>
+  ${can('orders')?`<button class="btn block" style="margin-bottom:10px" onclick="mNewOrder()">+ New order</button>`:''}
+  <div class="card">${os.length?os.map(o=>{
+    const items=db.lineItems.filter(l=>l.orderId===o.id);
+    const c=byId('customers',o.customerId)||{name:'Walk-in'};
+    return `<div class="li tap" onclick="go('order','${o.id}')">
+      <div class="grow"><div class="t">${esc(o.number)} · ${esc(c.name)}</div>
+      <div class="s">${items.length} line${items.length!==1?'s':''} · ${esc(o.fulfillment)} · ${dshort(o.createdAt)} ${o.shopifyOrderId?'· <span class="chip">Shopify</span>':''}</div></div>
+      <span class="badge ${o.status==='completed'?'b-ok':o.status==='canceled'?'b-mut':'b-ind'}">${o.status.replace(/_/g,' ')}</span></div>`}).join('')
+    :'<div class="empty"><div class="big">No orders</div><p class="muted">Create a manual order or import from Shopify in Sync.</p></div>'}</div>`;
+}
+function vOrder(){
+  const o=byId('orders',route.id);if(!o)return vOrders();
+  const c=byId('customers',o.customerId)||{name:'Walk-in'};
+  const items=db.lineItems.filter(l=>l.orderId===o.id);
+  const canAdvance=!['completed','canceled'].includes(o.status);
+  return `<div class="page-title"><span class="tap" onclick="go('orders')">Orders</span> / ${esc(o.number)}</div>
+  <div class="card">
+    <div class="row"><div class="grow"><h3>${esc(c.name)}</h3>
+      <div class="sm muted">${esc(o.fulfillment)} · ${dshort(o.createdAt)} · origin ${esc(store(o.originStoreId).code)}</div></div>
+      <span class="badge b-ind">${o.status.replace(/_/g,' ')}</span></div>
+    <div class="row" style="margin-top:10px">
+      ${canAdvance?`<button class="btn small" onclick="autoAllocateOrder('${o.id}')">Auto-reserve stock</button>
+      <button class="btn sec small" onclick="printPickTicket('${o.id}')">🖨 Pick ticket</button>
+      <button class="btn ghost small" onclick="mAddLine('${o.id}')">+ Line</button>
+      <button class="btn danger small" onclick="cancelOrder('${o.id}')">Cancel</button>`:''}
+    </div>
+  </div>
+  ${items.map(li=>{
+    const allocs=db.allocations.filter(a=>a.lineItemId===li.id&&a.status!=='released');
+    const allocYd=allocs.reduce((s,a)=>s+a.allocatedYards,0);
+    return `<div class="card">
+      <div class="row"><div class="grow"><b>${esc(vname(li.variantId))}</b>
+        <div class="sm muted">${fmt(li.qty)} × ${esc(li.uom)} → needs ${fmt(li.yardsRequired)} yd · ${money(li.priceEach)} ea</div></div>
+        <span class="badge ${li.status==='cut'?'b-ok':li.status==='allocated'?'b-ind':'b-mut'}">${li.status}</span></div>
+      ${allocs.length?allocs.map(a=>{
+        const r=byId('rolls',a.rollId)||{};
+        return `<div class="li"><div class="grow"><div class="t mono sm tap" onclick="go('roll','${a.rollId}')">${esc(r.code||'?')} · ${esc(loc(r.locationId).binCode||'')}</div>
+        <div class="s">${fmt(a.allocatedYards)} yd ${a.status==='cut'?'· cut '+fmt(a.cutYards)+' yd ✓':'reserved'}</div></div>
+        ${a.status==='reserved'?`<button class="btn small" onclick="mCutAlloc('${a.id}')">✂ Cut</button>`:''}</div>`}).join('')
+      :`<div class="sm muted" style="margin-top:6px">Not allocated ${allocYd<li.yardsRequired?'— tap Auto-reserve':''}</div>`}
+    </div>`}).join('')}
+  ${canAdvance&&o.fulfillment==='local_delivery'?`<div class="card"><h3>Delivery</h3>
+    ${o.routeId?`<div class="sm">On route <b class="tap" onclick="go('routed','${o.routeId}')">${esc((byId('routes',o.routeId)||{}).code||'')}</b></div>`
+    :`<button class="btn sec small" onclick="mAssignDelivery('${o.id}')">Assign to route</button>`}</div>`:''}
+  ${canAdvance?`<div class="card"><h3>Advance status</h3><div class="row">
+    ${ORDER_FLOW.slice(ORDER_FLOW.indexOf(o.status)+1,ORDER_FLOW.indexOf(o.status)+3).map(s=>`<button class="btn ghost small" onclick="setOrderStatus('${o.id}','${s}')">${s.replace(/_/g,' ')} →</button>`).join('')}
+    <button class="btn small" onclick="setOrderStatus('${o.id}','completed')">Complete ✓</button></div></div>`:''}`;
+}
+function mNewOrder(){
+  if(!db.sellableSkus.length){toast('Create catalog items first');return}
+  modal('New order',`
+    <label>Customer</label><select id="o_c"><option value="">Walk-in</option>${db.customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
+    <label>Fulfillment</label><select id="o_f">${['pickup','ship','local_delivery','transfer'].map(f=>`<option>${f}</option>`).join('')}</select>
+    <hr style="border:none;border-top:1px dashed var(--line);margin:14px 0">
+    <label>First line — sellable SKU</label><select id="o_sku">${db.sellableSkus.filter(s=>s.active).map(s=>`<option value="${s.id}">${esc(s.sku)} — ${esc(vname(s.variantId))}</option>`).join('')}</select>
+    <label>Quantity</label><input id="o_q" type="number" step="0.25" value="1" inputmode="decimal">`,
+    `<button class="btn" onclick="saveOrder()">Create order</button>`);
+}
+function saveOrder(){
+  const sku=byId('sellableSkus',F('o_sku'));const q=FN('o_q');
+  if(!sku||q<=0){toast('Pick a SKU and quantity');return}
+  const o={id:uid(),number:nextCode('order','SO'),shopifyOrderId:'',customerId:F('o_c')||null,
+    originStoreId:db.settings.storeId,fulfillment:F('o_f'),status:'open',routeId:null,createdAt:now(),updatedAt:now()};
+  db.orders.push(o);
+  addLine(o.id,sku.id,q);
+  save();closeModal();go('order',o.id);toast(o.number+' created');
+}
+function addLine(orderId,skuId,q){
+  const sku=byId('sellableSkus',skuId);
+  db.lineItems.push({id:uid(),orderId,skuId,variantId:sku.variantId,qty:q,uom:sku.uom,
+    yardsRequired:Math.round(q*sku.drawQty*1000)/1000,priceEach:sku.price,status:'open'});
+}
+function mAddLine(oid){
+  modal('Add line',`
+    <label>Sellable SKU</label><select id="l_sku">${db.sellableSkus.filter(s=>s.active).map(s=>`<option value="${s.id}">${esc(s.sku)} — ${esc(vname(s.variantId))}</option>`).join('')}</select>
+    <label>Quantity</label><input id="l_q" type="number" step="0.25" value="1" inputmode="decimal">`,
+    `<button class="btn" onclick="addLine('${oid}',F('l_sku'),FN('l_q'));save();closeModal();render()">Add</button>`);
+}
+/* FIFO auto allocation: oldest received rolls first, prefer origin store, respect dye lot by preferring one lot per line */
+function autoAllocateOrder(oid){
+  const o=byId('orders',oid);let allocated=0;
+  db.lineItems.filter(l=>l.orderId===oid&&l.status==='open').forEach(li=>{
+    let need=li.yardsRequired - db.allocations.filter(a=>a.lineItemId===li.id&&a.status!=='released').reduce((s,a)=>s+a.allocatedYards,0);
+    if(need<=0.0001){li.status='allocated';return}
+    const originLocs=db.locations.filter(l=>l.storeId===o.originStoreId).map(l=>l.id);
+    let candidates=db.rolls.filter(r=>r.variantId===li.variantId&&rollSellable(r)&&rollAvail(r)>0)
+      .sort((a,b)=>{
+        const ao=originLocs.includes(a.locationId)?0:1,bo=originLocs.includes(b.locationId)?0:1;
+        if(ao!==bo)return ao-bo;
+        return (a.receivedDate||'').localeCompare(b.receivedDate||'')||(a.createdAt||'').localeCompare(b.createdAt||'');
+      });
+    /* dye-lot preference: if one roll can cover the whole need, take the oldest single roll */
+    const single=candidates.find(r=>rollAvail(r)>=need);
+    if(single)candidates=[single,...candidates.filter(r=>r!==single)];
+    for(const r of candidates){
+      if(need<=0.0001)break;
+      const take=Math.min(need,rollAvail(r));
+      r.reservedYards=Math.round((r.reservedYards+take)*1000)/1000;
+      db.allocations.push({id:uid(),lineItemId:li.id,rollId:r.id,allocatedYards:take,cutYards:0,status:'reserved',personId:me().id,allocatedAt:now()});
+      txn(r,'reserve',0,{notes:'Reserved for '+o.number,orderId:oid,lineItemId:li.id});db.transactions[0].quantityYards=take;
+      need-=take;allocated+=take;
+    }
+    if(need<=0.0001)li.status='allocated';
+  });
+  if(allocated>0){o.status='reserved';o.updatedAt=now();save();render();toast(fmt(allocated)+' yd reserved (FIFO)')}
+  else{const short=db.lineItems.filter(l=>l.orderId===oid&&l.status==='open').length;
+    toast(short?'Insufficient sellable stock for '+short+' line(s)':'Already fully allocated')}
+}
+function mCutAlloc(aid){
+  const a=byId('allocations',aid);const r=byId('rolls',a.rollId);
+  modal('Cut for order',`
+    <div class="sm muted">Roll ${esc(r.code)} — ${fmt(a.allocatedYards)} yd reserved, ${fmt(r.currentYards)} yd on roll</div>
+    <label>Actual yards cut</label><input id="ca_y" type="number" step="0.125" value="${a.allocatedYards}" inputmode="decimal">`,
+    `<button class="btn" onclick="saveCutAlloc('${aid}')">Record cut</button>`);
+}
+function saveCutAlloc(aid){
+  const a=byId('allocations',aid);const r=byId('rolls',a.rollId);const y=FN('ca_y');
+  if(y<=0||y>r.currentYards){toast('Invalid yardage');return}
+  const li=byId('lineItems',a.lineItemId);const o=li?byId('orders',li.orderId):null;
+  txn(r,'sale',-y,{notes:'Cut for '+(o?o.number:'order'),orderId:o?o.id:null,lineItemId:a.lineItemId});
+  r.reservedYards=Math.max(0,Math.round((r.reservedYards-a.allocatedYards)*1000)/1000);
+  a.cutYards=y;a.status='cut';a.cutAt=now();
+  if(li){const remaining=db.allocations.filter(x=>x.lineItemId===li.id&&x.status==='reserved');
+    if(!remaining.length)li.status='cut'}
+  if(o)advanceOrder(o.id);
+  save();closeModal();render();toast(fmt(y)+' yd cut');
+}
+function advanceOrder(oid){
+  const o=byId('orders',oid);if(!o)return;
+  const items=db.lineItems.filter(l=>l.orderId===oid&&l.status!=='canceled');
+  if(items.length&&items.every(l=>['cut','packed','shipped'].includes(l.status))&&['open','reserved'].includes(o.status)){o.status='cut';o.updatedAt=now()}
+}
+function setOrderStatus(oid,s){
+  const o=byId('orders',oid);o.status=s;o.updatedAt=now();
+  if(s==='completed'){db.lineItems.filter(l=>l.orderId===oid&&l.status==='cut').forEach(l=>l.status='shipped')}
+  save();render();toast('Order '+s.replace(/_/g,' '));
+}
+function cancelOrder(oid){
+  db.allocations.filter(a=>{const li=byId('lineItems',a.lineItemId);return li&&li.orderId===oid&&a.status==='reserved'})
+    .forEach(a=>{const r=byId('rolls',a.rollId);r.reservedYards=Math.max(0,r.reservedYards-a.allocatedYards);a.status='released';
+      txn(r,'release_reservation',0,{notes:'Order canceled'})});
+  const o=byId('orders',oid);o.status='canceled';o.updatedAt=now();
+  db.lineItems.filter(l=>l.orderId===oid).forEach(l=>{if(l.status!=='cut')l.status='canceled'});
+  save();render();toast('Order canceled, reservations released');
+}
+</script>
+<script>
+/* ============ LOCATIONS ============ */
+function vLocations(){
+  return `<div class="page-title">Locations & bins</div>
+  ${can('settings')?`<div class="row" style="margin-bottom:10px"><button class="btn small" onclick="mNewLocation()">+ Bin / location</button>
+    <button class="btn sec small" onclick="mNewStore()">+ Store</button></div>`:''}
+  ${db.stores.map(s=>{
+    const locs=db.locations.filter(l=>l.storeId===s.id&&l.active);
+    return `<div class="card"><h3>${esc(s.name)} <span class="chip">${esc(s.code)}</span></h3>
+      ${locs.map(l=>{
+        const rolls=db.rolls.filter(r=>r.locationId===l.id&&r.status!=='archived'&&r.currentYards>0);
+        const yd=rolls.reduce((a,r)=>a+r.currentYards,0);
+        return `<div class="li"><div class="grow"><div class="t mono sm">${esc(l.binCode)}</div>
+        <div class="s">${esc(l.type)}${l.zone?' · '+esc(l.zone):''} · ${rolls.length} roll${rolls.length!==1?'s':''} · ${fmt(yd)} yd</div></div>
+        <button class="btn ghost small" onclick="printBinLabel('${l.id}')">🖨</button></div>`}).join('')||'<span class="muted sm">No bins.</span>'}</div>`}).join('')}`;
+}
+function mNewStore(){
+  modal('New store / warehouse',`
+    <div class="grid2"><div><label>Code</label><input id="st_c" placeholder="WH2"></div>
+    <div><label>City</label><input id="st_city"></div></div>
+    <label>Name</label><input id="st_n" placeholder="Queens Warehouse">`,
+    `<button class="btn" onclick="saveStore()">Create</button>`);
+}
+function saveStore(){
+  if(!F('st_c')||!F('st_n')){toast('Code and name required');return}
+  const s={id:uid(),code:F('st_c'),name:F('st_n'),city:F('st_city'),active:true};
+  db.stores.push(s);
+  db.locations.push({id:uid(),storeId:s.id,type:'staging',binCode:F('st_c')+'-STAGE',zone:'Staging',qrValue:'BIN-'+F('st_c')+'-STAGE',active:true});
+  save();closeModal();render();toast('Store added with staging bin');
+}
+function mNewLocation(){
+  modal('New location',`
+    <label>Store</label><select id="lo_s">${db.stores.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>
+    <label>Type</label><select id="lo_t">${['bin','shelf','rack','aisle','staging','truck','warehouse','store'].map(t=>`<option>${t}</option>`).join('')}</select>
+    <div class="grid2"><div><label>Bin code</label><input id="lo_b" placeholder="WH-A-02-3"></div>
+    <div><label>Zone</label><input id="lo_z" placeholder="Zone A"></div></div>`,
+    `<button class="btn" onclick="saveLocation()">Create</button>`);
+}
+function saveLocation(){
+  if(!F('lo_b')){toast('Bin code required');return}
+  db.locations.push({id:uid(),storeId:F('lo_s'),type:F('lo_t'),binCode:F('lo_b'),zone:F('lo_z'),qrValue:'BIN-'+F('lo_b'),active:true});
+  save();closeModal();render();toast('Location added');
+}
+/* ============ TRANSFERS ============ */
+function vTransfers(){
+  const ts=db.transfers.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  return `<div class="page-title">Transfers</div>
+  ${can('move')?`<button class="btn block" style="margin-bottom:10px" onclick="mNewTransfer()">+ New transfer</button>`:''}
+  <div class="card">${ts.length?ts.map(t=>`
+    <div class="li tap" onclick="go('transfer','${t.id}')">
+      <div class="grow"><div class="t">${esc(t.code)} · ${esc(store(t.fromStoreId).code)} → ${esc(store(t.toStoreId).code)}</div>
+      <div class="s">${t.rollIds.length} roll${t.rollIds.length!==1?'s':''} · ${dshort(t.createdAt)}</div></div>
+      <span class="badge ${t.status==='received'?'b-ok':t.status==='in_transit'?'b-hold':'b-ind'}">${t.status.replace('_',' ')}</span></div>`).join('')
+    :'<div class="empty"><div class="big">No transfers</div><p class="muted">Move rolls between stores and the warehouse.</p></div>'}</div>`;
+}
+function mNewTransfer(){
+  const sid=db.settings.storeId;
+  const hereLocs=db.locations.filter(l=>l.storeId===sid).map(l=>l.id);
+  const rolls=db.rolls.filter(r=>hereLocs.includes(r.locationId)&&r.status!=='archived'&&r.currentYards>0);
+  if(!rolls.length){toast('No rolls at this store to transfer');return}
+  modal('Transfer from '+store(sid).code,`
+    <label>Destination store</label><select id="tr_to">${db.stores.filter(s=>s.id!==sid).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>
+    <label>Rolls to send</label>
+    <div style="max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px">
+    ${rolls.map(r=>`<label style="display:flex;gap:8px;align-items:center;text-transform:none;font-weight:500;font-size:13px;margin:8px 0">
+      <input type="checkbox" class="tr_roll" value="${r.id}" style="width:auto">
+      <span class="mono">${esc(r.code)}</span> ${esc(vname(r.variantId))} · ${fmt(r.currentYards)} yd</label>`).join('')}</div>`,
+    `<button class="btn" onclick="saveTransfer()">Create & dispatch</button>`);
+}
+function saveTransfer(){
+  const ids=[...document.querySelectorAll('.tr_roll:checked')].map(x=>x.value);
+  if(!ids.length){toast('Select at least one roll');return}
+  const to=F('tr_to');const sid=db.settings.storeId;
+  let stage=db.locations.find(l=>l.storeId===to&&l.type==='staging');
+  if(!stage){stage={id:uid(),storeId:to,type:'staging',binCode:store(to).code+'-INBOUND',zone:'Inbound',qrValue:'BIN-'+store(to).code+'-INBOUND',active:true};db.locations.push(stage)}
+  const t={id:uid(),code:nextCode('transfer','TR',4),fromStoreId:sid,toStoreId:to,rollIds:ids,stageLocId:stage.id,
+    status:'in_transit',createdAt:now(),dispatchedAt:now(),receivedAt:null,personId:me().id};
+  db.transfers.push(t);
+  ids.forEach(rid=>{const r=byId('rolls',rid);
+    moveRoll(r,stage.id,'transfer '+t.code);
+    txn(r,'transfer',0,{notes:t.code+' → '+store(to).code})});
+  save();closeModal();go('transfer',t.id);toast(t.code+' dispatched — stock hidden from sale until received');
+}
+function vTransfer(){
+  const t=byId('transfers',route.id);if(!t)return vTransfers();
+  return `<div class="page-title"><span class="tap" onclick="go('transfers')">Transfers</span> / ${esc(t.code)}</div>
+  <div class="card"><div class="row"><div class="grow"><h3>${esc(store(t.fromStoreId).name)} → ${esc(store(t.toStoreId).name)}</h3>
+    <div class="sm muted">Dispatched ${dshort(t.dispatchedAt)} by ${esc(person(t.personId).name)}</div></div>
+    <span class="badge ${t.status==='received'?'b-ok':'b-hold'}">${t.status.replace('_',' ')}</span></div>
+    <div class="row" style="margin-top:10px">
+    ${t.status==='in_transit'?`<button class="btn small" onclick="mReceiveTransfer('${t.id}')">Receive at ${esc(store(t.toStoreId).code)}</button>`:''}
+    <button class="btn ghost small" onclick="printTransferSheet('${t.id}')">🖨 Transfer sheet</button></div></div>
+  <div class="card"><h3>Rolls</h3>${t.rollIds.map(rid=>{const r=byId('rolls',rid);return r?rollRow(r):''}).join('')}</div>`;
+}
+function mReceiveTransfer(tid){
+  const t=byId('transfers',tid);
+  modal('Receive '+t.code,`
+    <div class="sm muted">Scan or confirm each roll, then choose the put-away bin.</div>
+    <label>Put away to</label><select id="rt_loc">${locOpts(null,t.toStoreId)}</select>`,
+    `<button class="btn" onclick="saveReceiveTransfer('${tid}')">Confirm received</button>`);
+}
+function saveReceiveTransfer(tid){
+  const t=byId('transfers',tid);const dest=F('rt_loc');
+  t.rollIds.forEach(rid=>{const r=byId('rolls',rid);if(r){moveRoll(r,dest,'transfer received '+t.code);scanEvent('roll',rid,'receive')}});
+  t.status='received';t.receivedAt=now();
+  save();closeModal();render();toast(t.code+' received — stock now sellable at '+store(t.toStoreId).code);
+}
+/* ============ DELIVERY ============ */
+function vDelivery(){
+  const rs=db.routes.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  return `<div class="page-title">Delivery</div>
+  ${can('deliver')?`<button class="btn block" style="margin-bottom:10px" onclick="mNewRoute()">+ New route</button>`:''}
+  <div class="card">${rs.length?rs.map(r=>{
+    const stops=db.stops.filter(s=>s.routeId===r.id);
+    const done=stops.filter(s=>s.status==='delivered').length;
+    return `<div class="li tap" onclick="go('routed','${r.id}')">
+      <div class="grow"><div class="t">${esc(r.code)} · ${esc(person(r.driverId).name)}</div>
+      <div class="s">${esc(r.date)} · ${done}/${stops.length} delivered · from ${esc(store(r.storeId).code)}</div></div>
+      <span class="badge ${r.status==='completed'?'b-ok':r.status==='out_for_delivery'?'b-hold':'b-ind'}">${r.status.replace(/_/g,' ')}</span></div>`}).join('')
+    :'<div class="empty"><div class="big">No routes</div><p class="muted">Anyone with delivery permission can be assigned as driver.</p></div>'}</div>`;
+}
+function mNewRoute(){
+  const drivers=db.people.filter(p=>p.active&&(p.canDeliver||p.role==='driver'));
+  modal('New delivery route',`
+    <label>Driver</label><select id="ro_d">${drivers.map(p=>`<option value="${p.id}">${esc(p.name)} (${p.role})</option>`).join('')}</select>
+    <div class="grid2"><div><label>Date</label><input id="ro_dt" type="date" value="${today()}"></div>
+    <div><label>Origin store</label><select id="ro_s">${db.stores.map(s=>`<option value="${s.id}" ${s.id===db.settings.storeId?'selected':''}>${esc(s.code)}</option>`).join('')}</select></div></div>
+    <label>Vehicle</label><input id="ro_v" placeholder="Van 1">`,
+    `<button class="btn" onclick="saveRoute()">Create route</button>`);
+}
+function saveRoute(){
+  const r={id:uid(),code:nextCode('route','RT',4),driverId:F('ro_d'),date:F('ro_dt'),storeId:F('ro_s'),
+    vehicle:F('ro_v'),status:'planned',createdAt:now()};
+  db.routes.push(r);save();closeModal();go('routed',r.id);toast(r.code+' created');
+}
+function vRoute(){
+  const r=byId('routes',route.id);if(!r)return vDelivery();
+  const stops=db.stops.filter(s=>s.routeId===r.id).sort((a,b)=>a.seq-b.seq);
+  return `<div class="page-title"><span class="tap" onclick="go('delivery')">Delivery</span> / ${esc(r.code)}</div>
+  <div class="card"><div class="row"><div class="grow"><h3>${esc(person(r.driverId).name)} · ${esc(r.date)}</h3>
+    <div class="sm muted">From ${esc(store(r.storeId).name)}${r.vehicle?' · '+esc(r.vehicle):''}</div></div>
+    <span class="badge b-ind">${r.status.replace(/_/g,' ')}</span></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost small" onclick="mAddStop('${r.id}')">+ Stop</button>
+      ${r.status==='planned'?`<button class="btn small" onclick="loadRoute('${r.id}')">Load van & depart</button>`:''}
+      ${r.status==='out_for_delivery'?`<button class="btn small" onclick="completeRoute('${r.id}')">Complete route</button>`:''}
+      <button class="btn sec small" onclick="printManifest('${r.id}')">🖨 Manifest</button></div></div>
+  ${stops.map(s=>{
+    const o=byId('orders',s.orderId)||{};const c=byId('customers',o.customerId)||{name:s.recipient||'—'};
+    return `<div class="card">
+      <div class="row"><span class="chip">#${s.seq}</span><div class="grow"><b>${esc(c.name)}</b>
+        <div class="sm muted">${esc(o.number||'')} · ${esc(s.address||'')}${s.city?', '+esc(s.city):''}</div>
+        ${s.deliveredAt?`<div class="sm" style="color:var(--ok)">✓ Delivered ${dshort(s.deliveredAt)} to ${esc(s.podName||'—')}</div>`:''}
+        ${s.status==='failed'?`<div class="sm" style="color:var(--warn)">✗ Failed — ${esc(s.notes||'')}</div>`:''}</div>
+        <span class="badge ${s.status==='delivered'?'b-ok':s.status==='failed'?'b-warn':'b-mut'}">${s.status.replace(/_/g,' ')}</span></div>
+      ${r.status==='out_for_delivery'&&!['delivered','failed'].includes(s.status)?`<div class="row" style="margin-top:8px">
+        <button class="btn small" onclick="mPOD('${s.id}')">✓ Deliver</button>
+        <button class="btn danger small" onclick="mFail('${s.id}')">Failed</button></div>`:''}
+    </div>`}).join('')||'<div class="muted sm">No stops yet — add orders to this route.</div>'}`;
+}
+function mAddStop(rid){
+  const r=byId('routes',rid);
+  const eligible=db.orders.filter(o=>!['completed','canceled','out_for_delivery','shipped'].includes(o.status)&&!o.routeId);
+  if(!eligible.length){toast('No unassigned open orders');return}
+  modal('Add stop',`
+    <label>Order</label><select id="sp_o">${eligible.map(o=>{const c=byId('customers',o.customerId)||{name:'Walk-in'};
+      return `<option value="${o.id}">${esc(o.number)} · ${esc(c.name)}</option>`}).join('')}</select>
+    <label>Address</label><input id="sp_a" placeholder="Street address">
+    <div class="grid2"><div><label>City</label><input id="sp_city"></div><div><label>ZIP</label><input id="sp_zip"></div></div>`,
+    `<button class="btn" onclick="saveStop('${rid}')">Add stop</button>`);
+}
+function saveStop(rid){
+  const o=byId('orders',F('sp_o'));const c=byId('customers',o.customerId)||{};
+  const seq=db.stops.filter(s=>s.routeId===rid).length+1;
+  db.stops.push({id:uid(),routeId:rid,orderId:o.id,seq,recipient:c.name||'',
+    address:F('sp_a')||c.address||'',city:F('sp_city')||c.city||'',zip:F('sp_zip')||c.postal||'',
+    status:'planned',deliveredAt:null,podName:'',notes:''});
+  o.routeId=rid;o.updatedAt=now();
+  save();closeModal();render();toast('Stop added');
+}
+function loadRoute(rid){
+  const r=byId('routes',rid);
+  let truck=db.locations.find(l=>l.storeId===r.storeId&&l.type==='truck');
+  if(!truck){truck={id:uid(),storeId:r.storeId,type:'truck',binCode:store(r.storeId).code+'-VAN',zone:'Vehicle',qrValue:'BIN-'+store(r.storeId).code+'-VAN',active:true};db.locations.push(truck)}
+  db.stops.filter(s=>s.routeId===rid).forEach(s=>{
+    const o=byId('orders',s.orderId);if(o){o.status='out_for_delivery';
+      /* move cut rolls tied to the order that still have yardage? orders ship cuts; rolls stay. Mark scan events. */
+      scanEvent('order',o.id,'load')}
+    s.status='out_for_delivery'});
+  r.status='out_for_delivery';r.truckLocId=truck.id;
+  save();render();toast('Route loaded — orders marked out for delivery');
+}
+function mPOD(sid){
+  modal('Proof of delivery',`
+    <label>Received by</label><input id="pod_n" placeholder="Recipient name">
+    <label>Notes</label><textarea id="pod_note" rows="2" placeholder="Left with doorman…"></textarea>`,
+    `<button class="btn" onclick="savePOD('${sid}')">Mark delivered</button>`);
+}
+function savePOD(sid){
+  const s=byId('stops',sid);s.status='delivered';s.deliveredAt=now();s.podName=F('pod_n');s.notes=F('pod_note');
+  const o=byId('orders',s.orderId);if(o){o.status='completed';o.updatedAt=now()}
+  scanEvent('delivery_stop',sid,'deliver');
+  save();closeModal();render();toast('Delivered ✓');
+}
+function mFail(sid){
+  modal('Failed delivery',`
+    <label>Reason</label><textarea id="fl_n" rows="2" placeholder="No one home, refused…"></textarea>`,
+    `<button class="btn danger" onclick="saveFail('${sid}')">Mark failed</button>`);
+}
+function saveFail(sid){
+  const s=byId('stops',sid);s.status='failed';s.notes=F('fl_n');
+  const o=byId('orders',s.orderId);if(o){o.status='staged';o.routeId=null;o.updatedAt=now()}
+  save();closeModal();render();toast('Marked failed — order returned to staged');
+}
+function completeRoute(rid){
+  const r=byId('routes',rid);r.status='completed';
+  save();render();toast('Route completed');
+}
+function mAssignDelivery(oid){
+  const open=db.routes.filter(r=>['planned','loaded'].includes(r.status));
+  if(!open.length){toast('Create a route first');go('delivery');return}
+  modal('Assign to route',`<label>Route</label><select id="ad_r">${open.map(r=>`<option value="${r.id}">${esc(r.code)} · ${esc(r.date)} · ${esc(person(r.driverId).name)}</option>`).join('')}</select>`,
+    `<button class="btn" onclick="(function(){const rid=F('ad_r');closeModal();route={page:'routed',id:rid};mAddStop(rid)})()">Choose stop details</button>`);
+}
+</script>
+<script>
+/* ============ REPORTS ============ */
+function vReports(){
+  const tab=route.tab||'stock';
+  const T={stock:repStock,valuation:repValuation,low:repLow,listing:repListing,ledger:repLedger,aging:repAging}[tab]||repStock;
+  return `<div class="page-title">Reports</div>
+  <div class="tabs">${[['stock','Stock by location'],['valuation','Valuation'],['low','Low stock'],['listing','Listing gaps'],['aging','Aging'],['ledger','Ledger']].map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="go('reports',null,'${k}')">${l}</button>`).join('')}</div>
+  ${T()}`;
+}
+function repStock(){
+  return db.stores.map(s=>{
+    const locIds=db.locations.filter(l=>l.storeId===s.id).map(l=>l.id);
+    const rows={};
+    db.rolls.filter(r=>locIds.includes(r.locationId)&&r.status!=='archived'&&r.currentYards>0).forEach(r=>{
+      rows[r.variantId]=rows[r.variantId]||{cur:0,res:0,rolls:0};
+      rows[r.variantId].cur+=r.currentYards;rows[r.variantId].res+=r.reservedYards;rows[r.variantId].rolls++});
+    const keys=Object.keys(rows);
+    return `<div class="card"><h3>${esc(s.name)}</h3>
+    ${keys.length?`<div class="tblwrap"><table class="tbl"><tr><th>Variant</th><th>Rolls</th><th>On hand</th><th>Reserved</th><th>Avail</th></tr>
+    ${keys.map(vid=>{const x=rows[vid];return `<tr><td>${esc(vname(vid))}</td><td>${x.rolls}</td><td class="mono">${fmt(x.cur)}</td><td class="mono">${fmt(x.res)}</td><td class="mono"><b>${fmt(x.cur-x.res)}</b></td></tr>`}).join('')}
+    </table></div>`:'<span class="muted sm">No stock.</span>'}</div>`}).join('');
+}
+function repValuation(){
+  let cost=0,retail=0,yards=0;
+  const rows=db.rolls.filter(r=>r.status!=='archived'&&r.currentYards>0).map(r=>{
+    const v=variant(r.variantId);const c=(r.costPerYard||v.costPerYard||0)*r.currentYards;const rt=(v.pricePerYard||0)*r.currentYards;
+    cost+=c;retail+=rt;yards+=r.currentYards;
+    return {r,c,rt}});
+  return `<div class="stats">
+    <div class="stat"><div class="n">${money(cost)}</div><div class="l">Inventory at cost</div></div>
+    <div class="stat"><div class="n">${money(retail)}</div><div class="l">At retail</div></div></div>
+  <div class="card"><div class="sm muted">${fmt(yards)} total yards on ${rows.length} rolls. Cost basis uses roll-specific cost, falling back to variant cost — this is the number that feeds the QuickBooks Inventory Asset export.</div></div>`;
+}
+function repLow(){
+  const rows=lowStock();
+  return `<div class="card"><h3>Below ${db.settings.lowStockYards} yd available</h3>
+  ${rows.length?rows.map(x=>`<div class="li"><div class="swatch" style="background:${x.v.hex||'#eee'}"></div>
+    <div class="grow"><div class="t">${esc(vname(x.v.id))}</div><div class="s mono">${esc(x.v.code)}</div></div>
+    <span class="badge ${x.avail<=0?'b-warn':'b-hold'}">${fmt(x.avail)} yd</span></div>`).join(''):'<span class="muted sm">Nothing low. 🎉</span>'}</div>`;
+}
+function repListing(){
+  const rows=db.variants.filter(v=>v.active).map(v=>{
+    const miss=[];
+    if(!v.photo1)miss.push('overhead photo');if(!v.photo2)miss.push('draped photo');if(!v.photo3)miss.push('mannequin photo');
+    if(!v.pricePerYard)miss.push('price');if(!v.shopifyProductId)miss.push('Shopify link');
+    if(!template(v.templateId).description)miss.push('description');
+    return {v,miss}}).filter(x=>x.miss.length);
+  return `<div class="card"><h3>Listing completeness</h3>
+  ${rows.length?rows.map(x=>`<div class="li tap" onclick="go('variantd','${x.v.id}')">
+    <div class="swatch" style="background:${x.v.hex||'#eee'}"></div>
+    <div class="grow"><div class="t">${esc(vname(x.v.id))}</div><div class="s">${esc(x.miss.join(', '))}</div></div>
+    <span class="badge b-hold">${x.miss.length}</span></div>`).join(''):'<span class="muted sm">All listings complete.</span>'}</div>`;
+}
+function repAging(){
+  const cut=new Date(Date.now()-90*864e5).toISOString().slice(0,10);
+  const rows=db.rolls.filter(r=>r.status!=='archived'&&r.currentYards>0&&(r.receivedDate||'')<cut)
+    .sort((a,b)=>(a.receivedDate||'').localeCompare(b.receivedDate||''));
+  return `<div class="card"><h3>On hand 90+ days</h3>
+  ${rows.length?rows.map(r=>rollRow(r)).join(''):'<span class="muted sm">No aging stock (received dates are all within 90 days).</span>'}</div>`;
+}
+function repLedger(){
+  const tx=db.transactions.slice(0,60);
+  return `<div class="card"><div class="row"><h3>Inventory transaction ledger</h3>
+    <button class="btn ghost small right" onclick="exportLedgerCSV()">⬇ CSV</button></div>
+  <div class="tblwrap"><table class="tbl"><tr><th>When</th><th>Roll</th><th>Type</th><th>Δ yd</th><th>By</th></tr>
+  ${tx.map(t=>{const r=byId('rolls',t.rollId)||{};return `<tr><td class="sm">${dshort(t.createdAt)}</td>
+    <td class="mono sm tap" onclick="go('roll','${t.rollId}')">${esc(r.code||'')}</td>
+    <td class="sm">${esc(txnLabel(t.type))}</td><td class="mono">${t.quantityYards>0?'+':''}${fmt(t.quantityYards)}</td>
+    <td class="sm">${esc(person(t.personId).name.split(' ')[0])}</td></tr>`}).join('')}</table></div>
+  <div class="sm muted" style="margin-top:8px">Showing latest 60 of ${db.transactions.length}. Export for the full ledger.</div></div>`;
+}
+/* ============ CSV / EXPORT helpers ============ */
+function csv(rows){return rows.map(r=>r.map(c=>{c=String(c??'');return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(',')).join('\r\n')}
+function download(name,content,mime){
+  const b=new Blob([content],{type:mime||'text/csv'});const u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},500);
+}
+function exportLedgerCSV(){
+  const rows=[['transaction_code','created_at','roll_code','variant_code','type','quantity_yards','previous_yards','new_yards','order','person','notes']];
+  db.transactions.slice().reverse().forEach(t=>{const r=byId('rolls',t.rollId)||{};const v=variant(t.variantId);const o=byId('orders',t.orderId)||{};
+    rows.push([t.code,t.createdAt,r.code||'',v.code||'',t.type,t.quantityYards,t.previousYards,t.newYards,o.number||'',person(t.personId).name,t.notes])});
+  download('inventory_ledger.csv',csv(rows));toast('Ledger exported');
+}
+/* ============ SYNC & EXPORTS (Shopify / ERPLY / QuickBooks) ============ */
+function vSync(){
+  const log=db.syncLog.slice(0,12);
+  const sm={cloud:'Cloud database',local:'This device (browser storage)',artifact:'This device (preview storage)',memory:'⚠ Memory only'}[syncState.mode];
+  return `<div class="page-title">Sync & export</div>
+  <div class="card"><h3>Database <span class="chip">${syncState.mode==='cloud'?'shared':'device'}</span></h3>
+    <div class="sm"><b>${sm}</b>${syncState.mode==='cloud'?' · everyone connected sees the same data':''}</div>
+    <div class="s muted">${syncState.syncing?'Syncing…':syncState.lastSync?'Last sync '+new Date(syncState.lastSync).toLocaleTimeString():shopCfg().workerUrl?'Not synced yet':'Connect the worker below to share data across devices and people'}${syncState.error?' · ⚠ '+esc(syncState.error):''}</div>
+    ${shopCfg().workerUrl?`<div class="row" style="margin-top:8px">
+      <button class="btn small" onclick="forceCloudPull=true;cloudPull(false).then(()=>{render();toast('Pulled rev '+syncState.rev)})">⬇ Pull latest</button>
+      <button class="btn sec small" onclick="cloudPush().then(()=>toast(syncState.error?('Push failed: '+syncState.error):'Pushed rev '+syncState.rev))">⬆ Push now</button>
+      <button class="btn ghost small" onclick="mSnapshots()">🕘 History</button></div>`:''}</div>
+  <div class="card"><h3>Shopify <span class="chip">${shopCfg().workerUrl?'live':'not connected'}</span></h3>
+    ${shopCfg().workerUrl?`
+    <p class="sm muted">Connected via sync worker. Orders pull in, inventory and products push out. ${shopCfg().autoPush?'Auto-push is on: every stock change syncs within seconds.':'Auto-push is off — push manually below.'}</p>
+    <div class="row" style="margin-top:8px">
+      <button class="btn small" onclick="livePullOrders()">⬇ Pull new orders</button>
+      <button class="btn sec small" onclick="livePushInventory()">⬆ Push inventory</button>
+      <button class="btn ghost small" onclick="livePushProducts()">⬆ Push products</button></div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn ghost small" onclick="testShopifyWorker()">Test connection</button>
+      <button class="btn ghost small" onclick="mShopifySettings()">⚙ Connector settings</button></div>`
+    :`<p class="sm muted">Connect the Shopify sync worker for live 2-way sync: orders in, inventory out, product push. Until then, CSV exports below match Shopify's import formats.</p>
+    <div class="row" style="margin-top:8px"><button class="btn small" onclick="mShopifySettings()">Connect Shopify</button></div>`}
+    <div class="row" style="margin-top:6px">
+      <button class="btn ghost small" onclick="exportShopifyProducts()">⬇ Products CSV</button>
+      <button class="btn ghost small" onclick="exportShopifyInventory()">⬇ Inventory CSV</button>
+      <button class="btn ghost small" onclick="mImportShopifyOrders()">⬆ Import orders CSV</button></div></div>
+  <div class="card"><h3>QuickBooks Online</h3>
+    <p class="sm muted">Journal export built from the inventory ledger: receives debit ${esc(db.settings.qbo.invAsset)}, cuts move cost to ${esc(db.settings.qbo.cogs)}, damage/variance hits ${esc(db.settings.qbo.shrink)}. Import via QBO journal entry import or feed the same rows to the API worker.</p>
+    <div class="row" style="margin-top:8px">
+      <button class="btn small" onclick="exportQBOJournal()">⬇ Journal CSV</button>
+      <button class="btn ghost small" onclick="mQBOAccounts()">Account mapping</button></div></div>
+  <div class="card"><h3>ERPLY migration</h3>
+    <p class="sm muted">Column-compatible with ERPLY product & warehouse import templates so historic ERPLY data maps 1:1 in either direction during cutover.</p>
+    <div class="row" style="margin-top:8px">
+      <button class="btn small" onclick="exportErplyProducts()">⬇ Products (ERPLY cols)</button>
+      <button class="btn sec small" onclick="exportErplyStock()">⬇ Stock levels</button></div></div>
+  <div class="card"><h3>Backup</h3><div class="row">
+    <button class="btn ghost small" onclick="download('fabricops_backup.json',JSON.stringify(db,null,1),'application/json')">⬇ Full JSON backup</button>
+    <button class="btn ghost small" onclick="mRestore()">⬆ Restore</button></div></div>
+  <div class="card"><h3>Sync log</h3>
+    ${log.length?log.map(l=>`<div class="li"><div class="grow"><div class="t sm">${esc(l.shopifyObjectType)} ${esc(l.direction)}</div>
+      <div class="s">${esc(l.entityType)} · ${dshort(l.at)}</div></div>
+      <span class="badge ${l.status==='success'?'b-ok':'b-warn'}">${l.status}</span></div>`).join(''):'<span class="muted sm">No sync activity yet.</span>'}</div>`;
+}
+function exportShopifyProducts(){
+  const rows=[['Handle','Title','Body (HTML)','Vendor','Type','Tags','Published','Option1 Name','Option1 Value','Variant SKU','Variant Price','Variant Compare At Price','Variant Inventory Tracker','Variant Inventory Qty','Variant Inventory Policy','Variant Fulfillment Service','Variant Requires Shipping','Image Src','Image Alt Text','Status']];
+  db.templates.filter(t=>t.status==='active').forEach(t=>{
+    const handle=t.code.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    const ty=byId('types',t.typeId)||{};
+    db.variants.filter(v=>v.templateId===t.id&&v.active).forEach((v,i)=>{
+      const qty=Math.floor(db.rolls.filter(r=>r.variantId===v.id&&rollSellable(r)).reduce((a,r)=>a+rollAvail(r),0));
+      rows.push([handle,i===0?t.displayName:'',i===0?(t.description||''):'','Fabric Ops',ty.name||'',
+        (t.baseMaterial||'')+(t.stretch?','+t.stretch:''),i===0?'TRUE':'','Color',v.colorName,
+        v.shopifySku||v.code,v.pricePerYard,'','shopify',qty,'deny','manual','TRUE',v.photo1||'',v.photo1?v.colorName+' overhead':'','active']);
+      if(v.photo2)rows.push([handle,'','','','','','','','','','','','','','','','',v.photo2,v.colorName+' draped','']);
+      if(v.photo3)rows.push([handle,'','','','','','','','','','','','','','','','',v.photo3,v.colorName+' mannequin','']);
+      syncLog('variant',v.id,'product','push','success')});
+  });
+  download('shopify_products.csv',csv(rows));save();render();toast('Shopify product CSV exported');
+}
+function exportShopifyInventory(){
+  const rows=[['SKU','Location','Available']];
+  db.variants.filter(v=>v.active).forEach(v=>{
+    db.stores.forEach(s=>{
+      const locIds=db.locations.filter(l=>l.storeId===s.id).map(l=>l.id);
+      const qty=Math.floor(db.rolls.filter(r=>r.variantId===v.id&&locIds.includes(r.locationId)&&rollSellable(r)).reduce((a,r)=>a+rollAvail(r),0));
+      rows.push([v.shopifySku||v.code,s.name,qty])});
+    syncLog('inventory',v.id,'inventory_item','push','success')});
+  download('shopify_inventory.csv',csv(rows));save();render();toast('Inventory levels exported');
+}
+function mImportShopifyOrders(){
+  modal('Import Shopify orders',`
+    <p class="sm muted">Paste rows from Shopify's order export (Name, Email, Lineitem sku, Lineitem quantity). One line item per row: <span class="mono">#1001, a@b.com, SQ4W-EMER-YD, 3</span></p>
+    <label>CSV rows</label><textarea id="imp_csv" rows="6" placeholder="#1001,rosa@x.com,SQ4W-EMER-YD,3"></textarea>`,
+    `<button class="btn" onclick="importShopifyOrders()">Import</button>`);
+}
+function importShopifyOrders(){
+  const lines=F('imp_csv').split('\n').map(l=>l.trim()).filter(Boolean);
+  let made=0,orders={};
+  lines.forEach(line=>{
+    const p=line.split(',').map(x=>x.trim().replace(/^"|"$/g,''));
+    if(p.length<4||p[0].toLowerCase()==='name')return;
+    const [num,email,skuCode,qty]=p;
+    const sku=db.sellableSkus.find(s=>s.sku===skuCode)||db.sellableSkus.find(s=>{const v=variant(s.variantId);return v.shopifySku===skuCode&&s.type==='yard'});
+    if(!sku){syncLog('order',num,'order','pull','failed','Unknown SKU '+skuCode);return}
+    if(!orders[num]){
+      let cust=db.customers.find(c=>c.email===email);
+      if(!cust&&email){cust={id:uid(),name:email.split('@')[0],email,type:'retail'};db.customers.push(cust)}
+      const o={id:uid(),number:num||nextCode('order','SO'),shopifyOrderId:num,customerId:cust?cust.id:null,
+        originStoreId:db.settings.storeId,fulfillment:'ship',status:'open',routeId:null,createdAt:now(),updatedAt:now()};
+      db.orders.push(o);orders[num]=o;made++;syncLog('order',o.id,'order','pull','success')}
+    addLine(orders[num].id,sku.id,parseFloat(qty)||1);
+  });
+  save();closeModal();go('orders');toast(made+' order(s) imported from Shopify');
+}
+function exportQBOJournal(){
+  const q=db.settings.qbo;
+  const rows=[['JournalNo','JournalDate','Memo','Account','Debit','Credit','Name']];
+  let jn=1;
+  db.transactions.slice().reverse().forEach(t=>{
+    const r=byId('rolls',t.rollId)||{};const v=variant(t.variantId);
+    const cost=Math.abs(t.quantityYards)*(r.costPerYard||v.costPerYard||0);
+    if(cost<=0)return;
+    const memo=t.type+' '+(r.code||'')+' '+fmt(Math.abs(t.quantityYards))+'yd';
+    const date=t.createdAt.slice(0,10);
+    if(t.type==='receive'||t.type==='return'){
+      rows.push([jn,date,memo,q.invAsset,cost.toFixed(2),'','']);
+      rows.push([jn,date,memo,q.ap,'',cost.toFixed(2),'']);jn++}
+    else if(t.type==='sale'||t.type==='sample_cut'){
+      rows.push([jn,date,memo,q.cogs,cost.toFixed(2),'','']);
+      rows.push([jn,date,memo,q.invAsset,'',cost.toFixed(2),'']);jn++}
+    else if(t.type==='damage'||(t.type==='adjustment'&&t.quantityYards<0)||t.type==='cycle_count_variance'){
+      rows.push([jn,date,memo,q.shrink,cost.toFixed(2),'','']);
+      rows.push([jn,date,memo,q.invAsset,'',cost.toFixed(2),'']);jn++}
+    else if(t.type==='adjustment'&&t.quantityYards>0){
+      rows.push([jn,date,memo,q.invAsset,cost.toFixed(2),'','']);
+      rows.push([jn,date,memo,q.shrink,'',cost.toFixed(2),'']);jn++}
+  });
+  download('qbo_journal.csv',csv(rows));toast('QuickBooks journal exported ('+(jn-1)+' entries)');
+}
+function mQBOAccounts(){
+  const q=db.settings.qbo;
+  modal('QuickBooks accounts',`
+    <label>Inventory asset</label><input id="q_inv" value="${esc(q.invAsset)}">
+    <label>COGS</label><input id="q_cogs" value="${esc(q.cogs)}">
+    <label>Sales income</label><input id="q_sales" value="${esc(q.sales)}">
+    <label>Accounts payable</label><input id="q_ap" value="${esc(q.ap)}">
+    <label>Shrinkage / adjustment</label><input id="q_sh" value="${esc(q.shrink)}">`,
+    `<button class="btn" onclick="saveQBO()">Save mapping</button>`);
+}
+function saveQBO(){Object.assign(db.settings.qbo,{invAsset:F('q_inv'),cogs:F('q_cogs'),sales:F('q_sales'),ap:F('q_ap'),shrink:F('q_sh')});save();closeModal();toast('QBO mapping saved')}
+function exportErplyProducts(){
+  /* Columns aligned to ERPLY product import: code, name, group, price, cost, EAN/UPC */
+  const rows=[['Product code','Product name','Product group','Sales price','Cost','Code 2 (EAN/UPC)','Unit','Status','Description']];
+  db.variants.forEach(v=>{
+    const t=template(v.templateId);const ty=byId('types',t.typeId)||{};
+    rows.push([v.code,v.displayName,ty.name||'',v.pricePerYard,v.costPerYard,v.shopifySku||'','yard',v.active?'ACTIVE':'ARCHIVED',t.description||''])});
+  download('erply_products.csv',csv(rows));toast('ERPLY-format product export ready');
+}
+function exportErplyStock(){
+  /* ERPLY inventory registration format: warehouse code, product code, amount, cost */
+  const rows=[['Warehouse code','Product code','Amount','Unit cost']];
+  db.stores.forEach(s=>{
+    const locIds=db.locations.filter(l=>l.storeId===s.id).map(l=>l.id);
+    db.variants.forEach(v=>{
+      const rolls=db.rolls.filter(r=>r.variantId===v.id&&locIds.includes(r.locationId)&&r.currentYards>0);
+      if(!rolls.length)return;
+      const amt=rolls.reduce((a,r)=>a+r.currentYards,0);
+      const cost=rolls.reduce((a,r)=>a+r.currentYards*(r.costPerYard||v.costPerYard||0),0)/amt;
+      rows.push([s.code,v.code,amt.toFixed(2),cost.toFixed(2)])})});
+  download('erply_stock.csv',csv(rows));toast('ERPLY-format stock export ready');
+}
+function mRestore(){
+  modal('Restore from backup',`<label>Paste backup JSON</label><textarea id="rb_j" rows="6"></textarea>
+  <p class="sm muted">Replaces everything currently stored.</p>`,
+  `<button class="btn danger" onclick="doRestore()">Restore</button>`);
+}
+function doRestore(){
+  try{const d=JSON.parse(F('rb_j'));if(!d.rolls||!d.settings)throw 0;db=d;migrate();save();closeModal();render();toast('Restored')}
+  catch(e){toast('Invalid backup JSON')}
+}
+</script>
+<script>
+/* ============ settings ============ */
+function vSettings(){
+  if(!can('settings'))return '<div class="card"><p class="muted">Admin only.</p></div>';
+  return `
+  <div class="pagehead"><h1>Settings</h1></div>
+  <div class="card"><div class="cardhead"><h2>People & roles</h2>
+    <button class="btn small" onclick="mPerson()">+ Person</button></div>
+    ${db.people.map(p=>`<div class="listrow">
+      <div><b>${esc(p.name)}</b> <span class="tag">${esc(p.role)}</span>${p.canDeliver?' <span class="tag orange">delivers</span>':''}
+        <div class="sm muted">${esc(store(p.storeId).name)} · ${p.active?'active':'inactive'}</div></div>
+      <button class="btn ghost small" onclick="mPerson('${p.id}')">Edit</button></div>`).join('')}
+  </div>
+  <div class="card"><div class="cardhead"><h2>Inventory rules</h2></div>
+    <label>Low stock threshold (yards per variant per store)</label>
+    <input id="set_low" type="number" step="1" value="${db.settings.lowStockYards}">
+    <div style="margin-top:10px"><button class="btn sec small" onclick="db.settings.lowStockYards=FN('set_low')||15;save();toast('Saved')">Save threshold</button></div>
+  </div>
+  <div class="card"><div class="cardhead"><h2>Data</h2></div>
+    <div class="btnrow">
+      <button class="btn ghost small" onclick="if(confirm('Load demo data? Replaces current data.')){seed();save();go('home');toast('Demo data loaded')}">Load demo data</button>
+      <button class="btn danger small" onclick="if(confirm('Erase everything?')){db=EMPTY();save();go('home');toast('Reset')}">Reset all data</button>
+    </div>
+    <p class="sm muted" style="margin-top:8px">Backups live under More → Sync & Export.</p>
+  </div>`;
+}
+const ROLES=['admin','manager','sales','warehouse','cutter','photographer','driver','readonly'];
+function mPerson(id){
+  const p=id?byId('people',id):{name:'',role:'sales',storeId:db.settings.storeId,canDeliver:false,active:true};
+  modal(id?'Edit person':'New person',`
+    <label>Name</label><input id="p_n" value="${esc(p.name)}">
+    <div class="grid2"><div><label>Role</label><select id="p_r">${ROLES.map(r=>`<option ${p.role===r?'selected':''}>${r}</option>`).join('')}</select></div>
+    <div><label>Home store</label><select id="p_s">${db.stores.map(s=>`<option value="${s.id}" ${p.storeId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div></div>
+    <label class="chk"><input type="checkbox" id="p_d" ${p.canDeliver?'checked':''}> Can deliver</label>
+    <label class="chk"><input type="checkbox" id="p_a" ${p.active?'checked':''}> Active</label>`,
+    `<button class="btn" onclick="savePerson('${id||''}')">Save</button>`);
+}
+function savePerson(id){
+  const n=F('p_n');if(!n){toast('Name required');return}
+  if(id){const p=byId('people',id);Object.assign(p,{name:n,role:F('p_r'),storeId:F('p_s'),canDeliver:$('#p_d').checked,active:$('#p_a').checked})}
+  else db.people.push({id:uid(),name:n,role:F('p_r'),storeId:F('p_s'),canDeliver:$('#p_d').checked,active:$('#p_a').checked});
+  save();closeModal();render();toast('Saved');
+}
+
+/* ============ scan ============ */
+let scanStream=null,scanRAF=null;
+function startWarehouseInventory(){
+  ensureInventorySetup();db.settings.scanMode='inventory';save();go('scan');toast('Scan a roll QR to start counting');
+}
+function ensureInventorySetup(){
+  if(!db.stores.length)db.stores.push({id:uid(),code:'BUF',name:'Buffalo Warehouse',city:'Buffalo',active:true});
+  if(!db.people.length){
+    const sid=db.stores[0].id;
+    db.people=[
+      {id:uid(),name:'Aria',role:'warehouse',storeId:sid,canDeliver:false,active:true},
+      {id:uid(),name:'Aaron',role:'warehouse',storeId:sid,canDeliver:false,active:true},
+      {id:uid(),name:'Ben',role:'admin',storeId:sid,canDeliver:false,active:true}
+    ];
+  }
+  if(!db.settings.storeId||!byId('stores',db.settings.storeId))db.settings.storeId=db.stores[0].id;
+  if(!db.settings.personId||!byId('people',db.settings.personId))db.settings.personId=(db.people.find(p=>p.name==='Ben')||db.people[0]).id;
+  if(!db.locations.length){
+    const s=myStore()||db.stores[0];
+    db.locations.push({id:uid(),storeId:s.id,type:'bin',binCode:s.code+'-RECEIVING',zone:'Opening count',qrValue:'BIN-'+s.code+'-RECEIVING',active:true});
+  }
+  if(!db.settings.lastScanLocationId||!byId('locations',db.settings.lastScanLocationId))db.settings.lastScanLocationId=db.locations[0].id;
+}
+function scanMode(){return db.settings.scanMode||'inventory'}
+function setScanMode(m){db.settings.scanMode=m;save();render()}
+function setScanLocation(id){db.settings.lastScanLocationId=id;save();render();toast('Counting into '+loc(id).binCode)}
+function sameCode(a,b){return String(a||'').trim().toUpperCase()===String(b||'').trim().toUpperCase()}
+function findRollScan(code){return db.rolls.find(r=>sameCode(r.qrValue,code)||sameCode(r.code,code))}
+function findLocationScan(code){return db.locations.find(l=>sameCode(l.qrValue,code)||sameCode('BIN-'+l.binCode,code)||sameCode(l.binCode,code))}
+function normalizeScanCode(raw){
+  let code=String(raw||'').trim();if(!code)return '';
+  try{
+    const u=new URL(code);
+    code=u.searchParams.get('qr')||u.searchParams.get('code')||u.searchParams.get('roll')||u.pathname.split('/').filter(Boolean).pop()||code;
+  }catch(e){}
+  const m=String(code).match(/(ROLL|BIN|TR|SO|RT|TXN)-[A-Za-z0-9\-]+/i);
+  return m?m[0].toUpperCase():String(code).trim();
+}
+function scanStats(){
+  const day=today();
+  const ev=db.scanEvents.filter(s=>(s.at||'').slice(0,10)===day);
+  return {
+    total:ev.length,
+    intake:ev.filter(s=>s.action==='inventory_intake').length,
+    count:ev.filter(s=>s.action==='inventory_count').length,
+    rolls:db.rolls.filter(r=>(r.createdAt||'').slice(0,10)===day).length
+  };
+}
+function vScan(){
+  ensureInventorySetup();
+  const mode=scanMode(),stats=scanStats(),scanLoc=loc(db.settings.lastScanLocationId);
+  const recent=db.scanEvents.slice(0,10);
+  return `
+  <div class="page-title">Scan</div>
+  <div class="tabs">${[['inventory','Inventory count'],['lookup','Lookup']].map(([k,l])=>`<button class="${mode===k?'on':''}" onclick="setScanMode('${k}')">${l}</button>`).join('')}</div>
+  ${mode==='inventory'?`<div class="stats">
+    <div class="stat"><div class="n">${stats.intake}</div><div class="l">New rolls today</div></div>
+    <div class="stat"><div class="n">${stats.count}</div><div class="l">Counts today</div></div>
+  </div>
+  <div class="card"><div class="cardhead"><h2>Counting into</h2></div>
+    <div class="row"><select id="scan_loc" onchange="setScanLocation(this.value)" style="flex:1">${locOpts(db.settings.lastScanLocationId)}</select>
+    <button class="btn ghost small" onclick="mQuickBin()">+ Bin</button></div>
+    <p class="sm muted" style="margin-top:8px">Scan a bin QR to switch bins. Scan a known roll to count it. Scan an unknown roll QR to create it with that physical label.</p></div>`:''}
+  <div class="card scanpane">
+    <video id="scanvid" playsinline muted style="width:100%;border-radius:10px;background:#111;aspect-ratio:4/3;object-fit:cover"></video>
+    <canvas id="scancv" style="display:none"></canvas>
+    <div id="scanmsg" class="sm muted" style="margin-top:8px">${mode==='inventory'?'Point the camera at a roll QR. Active bin: '+esc(scanLoc.binCode):'Point the camera at a roll, bin, transfer or order QR.'}</div>
+  </div>
+  <div class="card"><div class="cardhead"><h2>Or type a code</h2></div>
+    <div class="btnrow"><input id="scan_manual" placeholder="${mode==='inventory'?'Scan or type any roll QR value':'ROLL-000001 / BIN-BUF-RECEIVING / TR-0001 / SO-000001'}" style="flex:1">
+    <button class="btn" onclick="resolveScan(F('scan_manual'))">Go</button></div>
+  </div>
+  <div class="card"><div class="cardhead"><h2>Recent scans</h2></div>
+    ${recent.map(s=>`<div class="li"><div class="grow"><div class="t sm">${esc(s.action.replace(/_/g,' '))} · ${esc(s.entityType)}</div><div class="s">${esc(person(s.personId).name)} · ${dshort(s.at)}</div></div></div>`).join('')||'<span class="muted sm">No scans yet.</span>'}
+  </div>`;
+}
+function initScan(){
+  const vid=$('#scanvid');if(!vid)return;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('#scanmsg').textContent='Camera unavailable here. Type a code below.';return}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(st=>{
+    scanStream=st;vid.srcObject=st;vid.play();
+    const cv=$('#scancv'),ctx=cv.getContext('2d',{willReadFrequently:true});
+    const tick=()=>{
+      if(!scanStream)return;
+      if(vid.readyState===vid.HAVE_ENOUGH_DATA){
+        cv.width=vid.videoWidth;cv.height=vid.videoHeight;
+        ctx.drawImage(vid,0,0,cv.width,cv.height);
+        try{
+          const img=ctx.getImageData(0,0,cv.width,cv.height);
+          const q=jsQR(img.data,cv.width,cv.height,{inversionAttempts:'dontInvert'});
+          if(q&&q.data){stopScanStream();resolveScan(q.data);return}
+        }catch(e){}
+      }
+      scanRAF=requestAnimationFrame(tick)};
+    scanRAF=requestAnimationFrame(tick);
+  }).catch(()=>{$('#scanmsg').textContent='Camera permission denied. Type a code below.'});
+}
+function stopScanStream(){
+  if(scanRAF)cancelAnimationFrame(scanRAF);scanRAF=null;
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}
+}
+function resolveScan(raw){
+  const code=normalizeScanCode(raw);if(!code){toast('No code');return}
+  let hit;
+  if(scanMode()==='inventory'){
+    hit=findLocationScan(code);
+    if(hit){scanEvent('location',hit.id,'set_count_bin');db.settings.lastScanLocationId=hit.id;save();render();toast('Counting into '+hit.binCode);return}
+    hit=findRollScan(code);
+    if(hit){scanEvent('roll',hit.id,'scan_count');save();mInventoryCount(hit.id);return}
+    mInventoryIntake(code);return;
+  }
+  hit=findRollScan(code);
+  if(hit){scanEvent('roll',hit.id,'lookup');save();go('roll',hit.id);toast(hit.code);return}
+  hit=findLocationScan(code);
+  if(hit){scanEvent('location',hit.id,'lookup');save();go('locations');toast(hit.binCode);return}
+  hit=db.transfers.find(t=>sameCode(t.code,code));
+  if(hit){scanEvent('transfer',hit.id,'lookup');save();go('transfer',hit.id);return}
+  hit=db.orders.find(o=>sameCode(o.number,code));
+  if(hit){scanEvent('order',hit.id,'lookup');save();go('order',hit.id);return}
+  hit=db.routes.find(r=>sameCode(r.code,code));
+  if(hit){scanEvent('route',hit.id,'lookup');save();go('routed',hit.id);return}
+  toast('No match for '+code);
+}
+function cleanCode(txt,prefix){
+  const s=String(txt||'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,24);
+  return s||prefix;
+}
+function uniqueCode(coll,field,base){
+  let code=base,n=2;
+  while(db[coll].some(x=>sameCode(x[field],code)))code=base+'-'+n++;
+  return code;
+}
+function ensureCatalogType(width){
+  let fam=db.families[0];
+  if(!fam){fam={id:uid(),name:'Fabric',active:true};db.families.push(fam)}
+  let ty=db.types[0];
+  if(!ty){ty={id:uid(),familyId:fam.id,name:'Warehouse inventory',defaultWidth:width||54,defaultStretch:'',active:true};db.types.push(ty)}
+  return ty;
+}
+function createQuickVariant(o){
+  const ty=ensureCatalogType(o.widthIn);
+  const pname=(o.productName||'Uncategorized fabric').trim();
+  let t=db.templates.find(x=>sameCode(x.displayName,pname));
+  if(!t){
+    const tcode=uniqueCode('templates','code',cleanCode(pname,'FAB'));
+    t={id:uid(),typeId:ty.id,code:tcode,name:pname,displayName:pname,description:'',patternPrint:'',
+      baseMaterial:'',construction:'',stretch:ty.defaultStretch||'',opacity:'',widthIn:o.widthIn||ty.defaultWidth||54,
+      status:'active',createdAt:now(),updatedAt:now()};
+    db.templates.push(t);
+  }
+  const color=(o.colorName||'Default').trim();
+  const base=cleanCode(o.variantCode||((t.code||pname)+'-'+color),'FAB-VAR');
+  const code=uniqueCode('variants','code',base);
+  const v={id:uid(),templateId:t.id,code,colorFamily:'',colorName:color,hex:o.hex||'',finish:'',
+    displayName:t.displayName+' — '+color,shopifySku:code,shopifyProductId:'',shopifyVariantId:'',
+    pricePerYard:o.pricePerYard||0,costPerYard:o.costPerYard||0,
+    photo1Type:'overhead',photo1:'',photo2Type:'draped',photo2:'',photo3Type:'mannequin',photo3:'',
+    active:true,createdAt:now(),updatedAt:now()};
+  db.variants.push(v);
+  db.sellableSkus.push({id:uid(),variantId:v.id,sku:v.code+'-YD',type:'yard',uom:'yard',drawQty:1,price:v.pricePerYard,active:true});
+  return v;
+}
+function formLocation(prefix){
+  const nb=F(prefix+'_newbin');
+  if(nb){
+    const s=myStore()||db.stores[0];
+    let l=db.locations.find(x=>sameCode(x.binCode,nb)&&x.storeId===s.id);
+    if(!l){l={id:uid(),storeId:s.id,type:'bin',binCode:nb.toUpperCase(),zone:'',qrValue:'BIN-'+nb.toUpperCase(),active:true};db.locations.push(l)}
+    return l.id;
+  }
+  return F(prefix+'_loc')||db.settings.lastScanLocationId||db.locations[0].id;
+}
+function adoptRollSeq(code){
+  const m=String(code||'').match(/^ROLL-(\d+)$/i);
+  if(m)db.seq.roll=Math.max(db.seq.roll||0,parseInt(m[1],10));
+}
+function createInventoryRoll(o){
+  ensureInventorySetup();
+  const yards=Number(o.yards)||0;if(yards<=0)throw new Error('Enter measured yards');
+  let v=o.variantId&&o.variantId!=='__new'?byId('variants',o.variantId):null;
+  if(!v)v=createQuickVariant(o);
+  const useScannedCode=/^ROLL-\d+$/i.test(o.qr)&&!db.rolls.some(r=>sameCode(r.code,o.qr));
+  const code=useScannedCode?o.qr.toUpperCase():nextCode('roll','ROLL');
+  adoptRollSeq(code);
+  const r={id:uid(),variantId:v.id,code,lot:o.lot||'',qrValue:o.qr||code,originalYards:yards,currentYards:0,reservedYards:0,
+    widthIn:o.widthIn||template(v.templateId).widthIn,condition:o.condition||'new',receivedDate:today(),supplierId:null,
+    costPerYard:o.costPerYard||v.costPerYard,locationId:o.locationId,status:'available',createdAt:now(),updatedAt:now()};
+  db.rolls.push(r);txn(r,'receive',yards,{notes:(o.notes||'Opening inventory count')+(o.qr&&!sameCode(o.qr,code)?' · physical QR '+o.qr:'')});
+  db.rollHistory.unshift({id:uid(),rollId:r.id,fromLocationId:null,toLocationId:o.locationId,movedAt:now(),personId:me().id,reason:'opening inventory count'});
+  scanEvent('roll',r.id,'inventory_intake');
+  db.settings.lastScanLocationId=o.locationId;
+  return r;
+}
+function countInventoryRoll(id,o){
+  const r=byId('rolls',id);if(!r)throw new Error('Roll not found');
+  const nY=Number(o.yards);if(!(nY>=0))throw new Error('Enter measured yards');
+  const d=Math.round((nY-r.currentYards)*100)/100;
+  if(o.variantId&&o.variantId!==r.variantId)r.variantId=o.variantId;
+  r.lot=o.lot||'';r.condition=o.condition||r.condition||'new';
+  if(d)txn(r,'cycle_count_variance',d,{notes:o.notes||'QR inventory count'});
+  else{r.updatedAt=now();db.transactions.unshift({id:uid(),code:nextCode('txn','TXN',7),rollId:r.id,variantId:r.variantId,
+    type:'cycle_count_variance',quantityYards:0,previousYards:r.currentYards,newYards:r.currentYards,personId:me().id,
+    notes:o.notes||'QR inventory count verified',createdAt:now()})}
+  if(nY>0&&r.status==='sold_out')r.status='available';
+  if(o.locationId&&o.locationId!==r.locationId)moveRoll(r,o.locationId,'inventory count');
+  scanEvent('roll',r.id,'inventory_count');
+  db.settings.lastScanLocationId=o.locationId||r.locationId;
+  return r;
+}
+function mInventoryIntake(qr){
+  ensureInventorySetup();
+  const locId=db.settings.lastScanLocationId||db.locations[0].id;
+  const variants=db.variants.filter(v=>v.active);
+  modal('Inventory roll QR',`
+    <div class="card" style="margin:-2px 0 10px"><div class="sm muted">Scanned physical QR</div><div class="mono" style="word-break:break-all">${esc(qr)}</div></div>
+    <input type="hidden" id="inv_qr" value="${esc(qr)}">
+    <label>Product / variant</label><select id="inv_variant">${variants.map(v=>`<option value="${v.id}">${esc(vname(v.id))}</option>`).join('')}<option value="__new" ${variants.length?'':'selected'}>+ Create new product from this count</option></select>
+    <div class="grid2"><div><label>New product name</label><input id="inv_product" placeholder="Stretch Velvet"></div>
+    <div><label>Color / variant</label><input id="inv_color" placeholder="Burgundy"></div></div>
+    <div class="grid2"><div><label>Variant code</label><input id="inv_vcode" placeholder="VLST-BURG"></div>
+    <div><label>Hex swatch</label><input id="inv_hex" placeholder="#6b1f2a"></div></div>
+    <div class="grid2"><div><label>Measured yards</label><input id="inv_yards" type="number" step="0.125" inputmode="decimal"></div>
+    <div><label>Lot #</label><input id="inv_lot"></div></div>
+    <label>Bin / location</label><select id="inv_loc">${locOpts(locId)}</select>
+    <label>Or create bin now</label><input id="inv_newbin" placeholder="WH-A-01-1">
+    <div class="grid2"><div><label>Width (in)</label><input id="inv_width" type="number" step="0.25"></div>
+    <div><label>Cost / yd</label><input id="inv_cost" type="number" step="0.01"></div></div>
+    <label>Condition</label><select id="inv_condition">${['new','partial','remnant','damaged','hold'].map(c=>`<option>${c}</option>`).join('')}</select>
+    <label>Notes</label><input id="inv_notes" placeholder="Opening count, shelf tag, defect note…">`,
+    `<button class="btn" onclick="saveInventoryIntake(true)">Save & scan next</button><button class="btn ghost" onclick="saveInventoryIntake(false)">Save & view</button>`);
+}
+function saveInventoryIntake(next){
+  try{
+    const locId=formLocation('inv');
+    const r=createInventoryRoll({qr:F('inv_qr'),variantId:F('inv_variant'),productName:F('inv_product'),colorName:F('inv_color'),
+      variantCode:F('inv_vcode'),hex:F('inv_hex'),yards:FN('inv_yards'),lot:F('inv_lot'),locationId:locId,
+      widthIn:FN('inv_width'),costPerYard:FN('inv_cost'),condition:F('inv_condition'),notes:F('inv_notes')});
+    save();closeModal();next?go('scan'):go('roll',r.id);toast(r.code+' inventoried');
+  }catch(e){toast(e.message)}
+}
+function mInventoryCount(id){
+  const r=byId('rolls',id),locId=db.settings.lastScanLocationId||r.locationId;
+  modal('Count '+r.code,`
+    <div class="sm muted">System shows ${fmt(r.currentYards)} yd · scanned QR ${esc(r.qrValue||r.code)}</div>
+    <label>Product / variant</label><select id="cnt_variant">${db.variants.filter(v=>v.active).map(v=>`<option value="${v.id}" ${v.id===r.variantId?'selected':''}>${esc(vname(v.id))}</option>`).join('')}</select>
+    <div class="grid2"><div><label>Measured yards</label><input id="cnt_yards" type="number" step="0.125" value="${r.currentYards}" inputmode="decimal"></div>
+    <div><label>Lot #</label><input id="cnt_lot" value="${esc(r.lot||'')}"></div></div>
+    <label>Bin / location</label><select id="cnt_loc">${locOpts(locId)}</select>
+    <label>Or create bin now</label><input id="cnt_newbin" placeholder="WH-A-01-1">
+    <label>Condition</label><select id="cnt_condition">${['new','partial','remnant','damaged','hold'].map(c=>`<option ${c===r.condition?'selected':''}>${c}</option>`).join('')}</select>
+    <label>Notes</label><input id="cnt_notes" placeholder="Verified during opening count">`,
+    `<button class="btn" onclick="saveInventoryCount('${id}',true)">Count & scan next</button><button class="btn ghost" onclick="saveInventoryCount('${id}',false)">Count & view</button>`);
+}
+function saveInventoryCount(id,next){
+  try{
+    const locId=formLocation('cnt');
+    const r=countInventoryRoll(id,{variantId:F('cnt_variant'),yards:FN('cnt_yards'),lot:F('cnt_lot'),locationId:locId,condition:F('cnt_condition'),notes:F('cnt_notes')});
+    save();closeModal();next?go('scan'):go('roll',r.id);toast(r.code+' counted');
+  }catch(e){toast(e.message)}
+}
+function mQuickBin(){
+  ensureInventorySetup();
+  modal('Add counting bin',`
+    <label>Store</label><select id="qb_store">${db.stores.map(s=>`<option value="${s.id}" ${s.id===db.settings.storeId?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
+    <label>Bin code</label><input id="qb_bin" placeholder="WH-A-01-1">
+    <label>Zone</label><input id="qb_zone" placeholder="Aisle A">`,
+    `<button class="btn" onclick="saveQuickBin()">Create bin</button>`);
+}
+function saveQuickBin(){
+  const b=F('qb_bin').toUpperCase();if(!b){toast('Bin code required');return}
+  let l=db.locations.find(x=>sameCode(x.binCode,b)&&x.storeId===F('qb_store'));
+  if(!l){l={id:uid(),storeId:F('qb_store'),type:'bin',binCode:b,zone:F('qb_zone'),qrValue:'BIN-'+b,active:true};db.locations.push(l)}
+  db.settings.lastScanLocationId=l.id;save();closeModal();render();toast('Counting into '+b);
+}
+
+/* ============ printing ============ */
+function runPrint(html,jobType,entityType,entityId,tpl,silent){
+  $('#printarea').innerHTML=html;
+  drawQRs('#printarea');
+  printJob(jobType,entityType,entityId,tpl);
+  save();
+  setTimeout(()=>{window.print();if(!silent)toast('Sent to printer')},150);
+}
+function printRollLabel(id,silent){
+  const r=byId('rolls',id);if(!r)return;
+  const v=variant(r.variantId);const l=loc(r.locationId);
+  runPrint(`<div class="plabel">
+    <div class="ph"><span>FABRIC·OPS ROLL</span><span class="mono">${esc(r.code)}</span></div>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1"><div class="big">${esc(vname(r.variantId))}</div>
+      <table>
+        <tr><td>Lot</td><td class="mono">${esc(r.lot||'—')}</td></tr>
+        <tr><td>Yards</td><td><b>${fmt(r.currentYards)}</b> of ${fmt(r.originalYards)}</td></tr>
+        <tr><td>Width</td><td>${esc(r.widthIn||'—')}"</td></tr>
+        <tr><td>Condition</td><td>${esc(r.condition)}</td></tr>
+        <tr><td>Location</td><td>${esc(store(l.storeId).code)} · ${esc(l.binCode)}</td></tr>
+        <tr><td>Received</td><td>${esc(r.receivedDate||'—')}</td></tr>
+      </table></div>
+      <div class="pqr" data-qr="${esc(r.qrValue||r.code)}" data-qrsize="96"></div>
+    </div></div>`,'label','roll',id,'roll_label',silent);
+}
+function printBinLabel(id){
+  const l=byId('locations',id);if(!l)return;
+  const count=db.rolls.filter(r=>r.locationId===id&&r.currentYards>0).length;
+  runPrint(`<div class="plabel">
+    <div class="ph"><span>BIN</span><span class="mono">${esc(l.binCode)}</span></div>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1"><div class="big">${esc(store(l.storeId).name)}</div>
+      <table>
+        <tr><td>Type</td><td>${esc(l.type)}</td></tr>
+        <tr><td>Zone</td><td>${esc(l.zone||'—')}</td></tr>
+        <tr><td>Rolls now</td><td>${count}</td></tr>
+      </table></div>
+      <div class="pqr" data-qr="${esc(l.qrValue||('BIN-'+l.binCode))}" data-qrsize="96"></div>
+    </div></div>`,'label','location',id,'bin_label');
+}
+function printPickTicket(orderId){
+  const o=byId('orders',orderId);if(!o)return;
+  const c=byId('customers',o.customerId)||{name:'Walk-in'};
+  const lines=db.lineItems.filter(li=>li.orderId===orderId);
+  const rows=lines.map(li=>{
+    const allocs=db.allocations.filter(a=>a.lineItemId===li.id&&a.status!=='released');
+    const rollTxt=allocs.map(a=>{const r=byId('rolls',a.rollId);const l=loc(r.locationId);
+      return `<div class="mono">${esc(r.code)} · ${esc(l.binCode)} · pull ${fmt(a.allocatedYards)} yd <span class="pqr" data-qr="${esc(r.qrValue||r.code)}" data-qrsize="52"></span></div>`}).join('')||'<i>not allocated — pick any sellable roll</i>';
+    return `<tr><td>${esc(vname(li.variantId))}</td><td>${li.qty} × ${esc(li.uom)}</td><td><b>${fmt(li.yardsRequired)}</b> yd</td><td>${rollTxt}</td></tr>`}).join('');
+  runPrint(`<div class="psheet">
+    <h1>Pick ticket · ${esc(o.number)} <span class="pqr" data-qr="${esc(o.number)}" data-qrsize="72"></span></h1>
+    <p><b>${esc(c.name)}</b> · ${esc(o.fulfillment)} · created ${dshort(o.createdAt)} · origin ${esc(store(o.originStoreId).name)}</p>
+    <table><tr><th>Product</th><th>Qty</th><th>Yards</th><th>Suggested rolls / bins</th></tr>${rows}</table>
+    <p style="margin-top:14px">Cut by: ______________ &nbsp;&nbsp; Checked: ______________</p></div>`,
+    'sheet','order',orderId,'pick_ticket');
+}
+function printTransferSheet(id){
+  const t=byId('transfers',id);if(!t)return;
+  const rows=t.rollIds.map(rid=>{const r=byId('rolls',rid);if(!r)return'';
+    return `<tr><td class="mono">${esc(r.code)}</td><td>${esc(vname(r.variantId))}</td><td>${esc(r.lot||'—')}</td><td>${fmt(r.currentYards)} yd</td><td><span class="pqr" data-qr="${esc(r.qrValue||r.code)}" data-qrsize="52"></span></td></tr>`}).join('');
+  runPrint(`<div class="psheet">
+    <h1>Transfer ${esc(t.code)} <span class="pqr" data-qr="${esc(t.code)}" data-qrsize="72"></span></h1>
+    <p>From <b>${esc(store(t.fromStoreId).name)}</b> to <b>${esc(store(t.toStoreId).name)}</b> · ${esc(t.status)} · dispatched ${dshort(t.dispatchedAt)} by ${esc(person(t.personId).name)}</p>
+    <table><tr><th>Roll</th><th>Product</th><th>Lot</th><th>Yards</th><th>Scan</th></tr>${rows}</table>
+    <p style="margin-top:14px">Received by: ______________ &nbsp; Date: __________ &nbsp; Condition OK: ☐</p></div>`,
+    'sheet','transfer',id,'transfer_sheet');
+}
+function printManifest(routeId){
+  const r=byId('routes',routeId);if(!r)return;
+  const stops=db.stops.filter(s=>s.routeId===routeId).sort((a,b)=>a.seq-b.seq);
+  const rows=stops.map(s=>{const o=byId('orders',s.orderId)||{};
+    const lines=db.lineItems.filter(li=>li.orderId===s.orderId).map(li=>`${li.qty}× ${esc(vname(li.variantId))}`).join('<br>');
+    return `<tr><td>${s.seq}</td><td><b>${esc(s.recipient)}</b><br>${esc(s.address)}, ${esc(s.city)} ${esc(s.zip)}</td><td class="mono">${esc(o.number||'')}</td><td>${lines}</td><td>${esc(s.status)}</td><td><span class="pqr" data-qr="${esc(o.number||'')}" data-qrsize="52"></span></td></tr>`}).join('');
+  runPrint(`<div class="psheet">
+    <h1>Delivery manifest ${esc(r.code)} <span class="pqr" data-qr="${esc(r.code)}" data-qrsize="72"></span></h1>
+    <p>Driver <b>${esc(person(r.driverId).name)}</b> · ${esc(r.date)} · from ${esc(store(r.storeId).name)} · ${stops.length} stops</p>
+    <table><tr><th>#</th><th>Stop</th><th>Order</th><th>Items</th><th>Status</th><th>Scan</th></tr>${rows}</table>
+    <p style="margin-top:14px">Driver signature: ______________ &nbsp; Van check-in: __________</p></div>`,
+    'sheet','route',routeId,'delivery_manifest');
+}
+
+
+/* ============ shopify live connector ============ */
+function shopCfg(){
+  if(!db.settings.shopify)db.settings.shopify={};
+  const s=db.settings.shopify;
+  if(s.workerUrl===undefined)s.workerUrl='';
+  if(s.apiKey===undefined)s.apiKey='';
+  if(s.autoPush===undefined)s.autoPush=false;
+  if(!s.locationMap)s.locationMap={};
+  return s;
+}
+function mShopifySettings(){
+  const s=shopCfg();
+  modal('Shopify connector',`
+    <label>Sync worker URL</label><input id="sh_url" value="${esc(s.workerUrl)}" placeholder="https://your-app.vercel.app/api">
+    <label>Worker API key</label><input id="sh_key" value="${esc(s.apiKey)}" placeholder="Shared secret set in the worker">
+    <label class="chk"><input type="checkbox" id="sh_auto" ${s.autoPush?'checked':''}> Auto-push inventory after every stock change</label>
+    <div style="border-top:1px dotted var(--line);margin:10px 0;padding-top:10px">
+      <label>Store → Shopify location ID</label>
+      ${db.stores.map(st=>`<div class="row" style="margin-bottom:6px"><span class="sm" style="min-width:110px">${esc(st.name)}</span>
+        <input id="sh_loc_${st.id}" value="${esc(s.locationMap[st.id]||'')}" placeholder="gid://shopify/Location/…" style="flex:1"></div>`).join('')}
+      <p class="sm muted">Get location IDs from Test connection after saving the URL and key. Stores without a mapping are skipped on inventory push.</p>
+    </div>`,
+    `<button class="btn" onclick="saveShopifySettings()">Save</button>`);
+}
+function saveShopifySettings(){
+  const s=shopCfg();
+  s.workerUrl=F('sh_url').trim().replace(/\/+$/,'');
+  s.apiKey=F('sh_key').trim();
+  s.autoPush=$('#sh_auto').checked;
+  db.stores.forEach(st=>{const v=F('sh_loc_'+st.id);if(v!==null)s.locationMap[st.id]=v.trim()});
+  save();closeModal();render();toast('Connector saved');
+}
+async function workerFetch(path,body){
+  const s=shopCfg();
+  if(!s.workerUrl)throw new Error('No worker URL configured');
+  const res=await fetch(s.workerUrl+path,{
+    method:body?'POST':'GET',
+    headers:{'Content-Type':'application/json','X-Api-Key':s.apiKey},
+    body:body?JSON.stringify(body):undefined});
+  const txt=await res.text();
+  let json;try{json=JSON.parse(txt)}catch(e){json={raw:txt}}
+  if(!res.ok){const err=new Error(json.error||('HTTP '+res.status));err.status=res.status;err.conflict=res.status===409;err.server=json;throw err}
+  return json;
+}
+async function testShopifyWorker(){
+  toast('Testing…');
+  try{
+    const r=await workerFetch('/health');
+    let msg='Worker OK · shop '+(r.shop||'?');
+    if(r.locations&&r.locations.length){
+      msg+='\n\nShopify locations:\n'+r.locations.map(l=>l.name+'\n'+l.id).join('\n');
+      modal('Connection OK',`<p class="sm">Shop: <b>${esc(r.shop)}</b></p>
+        <p class="sm" style="margin-top:8px">Locations (paste an ID into each store mapping):</p>
+        ${r.locations.map(l=>`<div class="li"><div class="grow"><div class="t sm">${esc(l.name)}</div><div class="s mono">${esc(l.id)}</div></div></div>`).join('')}`,
+        `<button class="btn" onclick="closeModal();mShopifySettings()">Open settings</button>`);
+    }else toast(msg);
+    syncLog('worker',null,'health','pull','success');
+  }catch(e){syncLog('worker',null,'health','pull','failed',e.message);save();render();toast('Connection failed: '+e.message)}
+  save();
+}
+/* available yards per variant per store, sellable rolls only */
+function availableByVariantStore(){
+  const out={};
+  db.rolls.forEach(r=>{
+    if(!rollSellable(r))return;
+    const l=loc(r.locationId);if(!l.storeId)return;
+    const k=r.variantId+'|'+l.storeId;
+    out[k]=(out[k]||0)+rollAvail(r);
+  });
+  return out;
+}
+async function livePushInventory(){
+  const s=shopCfg();
+  const avail=availableByVariantStore();
+  const items=[];
+  db.variants.forEach(v=>{
+    const sku=db.sellableSkus.find(k=>k.variantId===v.id&&k.uom==='yard')||db.sellableSkus.find(k=>k.variantId===v.id);
+    if(!sku)return;
+    db.stores.forEach(st=>{
+      const locId=s.locationMap[st.id];if(!locId)return;
+      const yards=avail[v.id+'|'+st.id]||0;
+      items.push({sku:sku.sku||v.code,locationId:locId,available:Math.floor(yards),
+        inventoryItemId:v.shopifyInventoryItemId||null});
+    });
+  });
+  if(!items.length){toast('Nothing to push — map store locations first');return}
+  toast('Pushing '+items.length+' levels…');
+  try{
+    const r=await workerFetch('/inventory/set',{items});
+    (r.results||[]).forEach(x=>{
+      if(x.inventoryItemId){const v=db.variants.find(vv=>(db.sellableSkus.find(k=>k.variantId===vv.id&&(k.sku||vv.code)===x.sku)));if(v)v.shopifyInventoryItemId=x.inventoryItemId}
+    });
+    syncLog('inventory',null,'inventory_level','push',r.errors&&r.errors.length?'partial':'success',(r.errors||[]).slice(0,3).join('; '));
+    save();render();toast('Inventory pushed · '+(r.updated||0)+' set'+(r.errors&&r.errors.length?', '+r.errors.length+' errors':''));
+  }catch(e){syncLog('inventory',null,'inventory_level','push','failed',e.message);save();render();toast('Push failed: '+e.message)}
+}
+async function livePushProducts(){
+  const payload=db.variants.filter(v=>v.active!==false).map(v=>{
+    const t=template(v.templateId);const ty=byId('types',t.typeId)||{};
+    const sku=db.sellableSkus.find(k=>k.variantId===v.id&&k.uom==='yard')||db.sellableSkus.find(k=>k.variantId===v.id);
+    return {variantCode:v.code,title:t.displayName,color:v.colorName,productType:ty.name||'',
+      description:t.description||'',price:v.pricePerYard,sku:(sku&&sku.sku)||v.code,
+      photos:[v.photo1,v.photo2,v.photo3].filter(u=>u&&/^https?:/.test(u)),
+      shopifyProductId:v.shopifyProductId||null,shopifyVariantId:v.shopifyVariantId||null};
+  });
+  if(!payload.length){toast('No active variants');return}
+  toast('Pushing '+payload.length+' variants…');
+  try{
+    const r=await workerFetch('/products/push',{variants:payload});
+    (r.results||[]).forEach(x=>{
+      const v=db.variants.find(vv=>vv.code===x.variantCode);
+      if(v){v.shopifyProductId=x.productId||v.shopifyProductId;v.shopifyVariantId=x.variantId||v.shopifyVariantId;
+        v.shopifyInventoryItemId=x.inventoryItemId||v.shopifyInventoryItemId;
+        syncLog('variant',v.id,'product','push',x.error?'failed':'success',x.error||'')}
+    });
+    save();render();toast('Products pushed · '+(r.created||0)+' created, '+(r.updated||0)+' updated');
+  }catch(e){syncLog('product',null,'product','push','failed',e.message);save();render();toast('Push failed: '+e.message)}
+}
+async function livePullOrders(){
+  toast('Checking for orders…');
+  try{
+    const r=await workerFetch('/orders/pending');
+    const pend=r.orders||[];
+    if(!pend.length){toast('No new Shopify orders');return}
+    let made=0;const ackIds=[];
+    pend.forEach(so=>{
+      if(db.orders.find(o=>o.shopifyOrderId===String(so.id))){ackIds.push(so.id);return}
+      let cust=db.customers.find(c=>so.email&&c.email===so.email);
+      if(!cust&&(so.email||so.customerName)){cust={id:uid(),name:so.customerName||so.email,email:so.email||'',phone:so.phone||'',address:so.address||'',city:so.city||'',postal:so.zip||''};db.customers.push(cust)}
+      const o={id:uid(),number:nextCode('order','SO'),shopifyOrderId:String(so.id),shopifyName:so.name||'',
+        customerId:cust?cust.id:null,originStoreId:db.settings.storeId,
+        fulfillment:so.shipping?'ship':'pickup',status:'open',routeId:null,createdAt:now(),updatedAt:now()};
+      let lines=0;
+      (so.lineItems||[]).forEach(li=>{
+        const sku=db.sellableSkus.find(k=>k.sku===li.sku)||db.sellableSkus.find(k=>{const v=variant(k.variantId);return v.code===li.sku});
+        if(sku){addLine(o.id,sku.id,li.quantity||1);lines++}
+      });
+      if(lines){db.orders.push(o);autoAllocateOrder(o.id);made++;
+        syncLog('order',o.id,'order','pull','success')}
+      else syncLog('order',null,'order','pull','failed','No SKU match for Shopify order '+(so.name||so.id));
+      ackIds.push(so.id);
+    });
+    if(ackIds.length)await workerFetch('/orders/ack',{ids:ackIds});
+    save();render();toast(made+' order'+(made===1?'':'s')+' imported & auto-reserved');
+  }catch(e){syncLog('order',null,'order','pull','failed',e.message);save();render();toast('Pull failed: '+e.message)}
+}
+/* auto-push: debounce inventory pushes after stock-changing ledger events */
+let autoPushTimer=null;
+function scheduleAutoPush(){
+  const s=shopCfg();
+  if(!s.workerUrl||!s.autoPush)return;
+  clearTimeout(autoPushTimer);
+  autoPushTimer=setTimeout(()=>{livePushInventory()},4000);
+}
+/* wrap txn + moveRoll so every stock change schedules a push */
+const _txn=txn;
+txn=function(roll,type,delta,opts){_txn(roll,type,delta,opts);
+  if(['receive','sale','sample_cut','adjustment','damage','return','reserve','release_reservation','cycle_count_variance','transfer'].includes(type))scheduleAutoPush()};
+const _moveRoll=moveRoll;
+moveRoll=function(roll,toLocId,reason){_moveRoll(roll,toLocId,reason);scheduleAutoPush()};
+
+
+/* ============ cloud snapshots (point-in-time restore) ============ */
+async function mSnapshots(){
+  toast('Loading history…');
+  try{
+    const r=await workerFetch('/db/snapshots');
+    const snaps=r.snapshots||[];
+    modal('Database history',snaps.length?snaps.map(s=>`<div class="li"><div class="grow">
+      <div class="t sm">Rev ${s.rev} · ${esc(s.device||'')}</div>
+      <div class="s">${new Date(s.at).toLocaleString()} · ${fmt((s.bytes||0)/1024)} KB</div></div>
+      <button class="btn ghost small" onclick="restoreSnapshot(${s.rev})">Restore</button></div>`).join('')
+      :'<p class="sm muted">No snapshots yet. One is kept for each save to the cloud database (last 30).</p>','');
+  }catch(e){toast('History failed: '+e.message)}
+}
+async function restoreSnapshot(rev){
+  if(!confirm('Restore rev '+rev+'? Current state is snapshotted first.'))return;
+  try{
+    const r=await workerFetch('/db/restore',{rev});
+    await cloudPull(false);closeModal();render();toast('Restored rev '+rev+' → new rev '+syncState.rev);
+  }catch(e){toast('Restore failed: '+e.message)}
+}
+/* ============ boot ============ */
+loadDB().then(()=>{render()});
+</script>
+</body>
+</html>

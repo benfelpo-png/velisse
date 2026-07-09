@@ -1,0 +1,7 @@
+node_modules/
+shareable-preview/
+.vercel/
+.env
+.env.*
+npm-debug.log*
+*.local

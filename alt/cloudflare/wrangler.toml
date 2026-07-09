@@ -1,0 +1,24 @@
+name = "fabricops-sync"
+main = "fabricops-sync-worker.js"
+compatibility_date = "2025-06-01"
+
+# Create the KV namespace first:  npx wrangler kv namespace create ORDERS
+# then paste the id it prints below.
+[[kv_namespaces]]
+binding = "ORDERS"
+id = "PASTE_KV_NAMESPACE_ID_HERE"
+
+# Create the database first:  npx wrangler d1 create fabricops
+# then paste the database_id it prints below.
+[[d1_databases]]
+binding = "DB"
+database_name = "fabricops"
+database_id = "PASTE_D1_DATABASE_ID_HERE"
+
+[vars]
+SHOPIFY_SHOP = "your-store.myshopify.com"
+
+# Secrets (never in this file). Set each with:
+#   npx wrangler secret put SHOPIFY_TOKEN
+#   npx wrangler secret put SHOPIFY_WEBHOOK_SECRET
+#   npx wrangler secret put APP_KEY
