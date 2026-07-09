@@ -1924,7 +1924,7 @@ function shopCfg(){
 function mShopifySettings(){
   const s=shopCfg();
   modal('Shopify connector',`
-    <label>Sync worker URL</label><input id="sh_url" value="${esc(s.workerUrl)}" placeholder="https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api">
+    <label>Sync worker URL</label><input id="sh_url" value="${esc(s.workerUrl)}" placeholder="https://velisse-velisse-fabrics.vercel.app/api">
     <label>Worker API key</label><input id="sh_key" value="${esc(s.apiKey)}" placeholder="Shared secret set in the worker">
     <label class="chk"><input type="checkbox" id="sh_auto" ${s.autoPush?'checked':''}> Auto-push inventory after every stock change</label>
     <div style="border-top:1px dotted var(--line);margin:10px 0;padding-top:10px">

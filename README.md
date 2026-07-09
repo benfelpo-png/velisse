@@ -5,9 +5,9 @@ Fabric inventory for a multi-store business: roll-level yardage tracking, QR sca
 Canonical project links established on July 9, 2026:
 
 - GitHub repo: `https://github.com/benfelpo-png/velisse`
-- Vercel project: `https://vercel.com/velisse-inventory-system/velisse`
-- Current deployment host: `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app`
-- API base: `https://velisse-4yw3pxb8h-velisse-inventory-system.vercel.app/api`
+- Vercel project: `https://vercel.com/velisse-fabrics/velisse`
+- Current deployment host: `https://velisse-velisse-fabrics.vercel.app`
+- API base: `https://velisse-velisse-fabrics.vercel.app/api`
 
 One Vercel project = one app and API:
 
@@ -23,7 +23,7 @@ npm run test:app                       # verify the client
 vercel login && vercel --prod          # deploy (personal scope is default)
 ```
 
-Then in the Vercel dashboard for `velisse-inventory-system/velisse`: **Storage -> Neon Postgres -> connect**, add `APP_KEY`, and redeploy. Full walkthrough in `docs/DEPLOY.md`; Shopify go-live is in `docs/SETUP-SHOPIFY.md`.
+Then in the Vercel dashboard for `velisse-fabrics/velisse`: **Storage -> Neon Postgres -> connect**, add `APP_KEY`, and redeploy. Full walkthrough in `docs/DEPLOY.md`; Shopify go-live is in `docs/SETUP-SHOPIFY.md`.
 
 ## Existing GitHub Remote
 
