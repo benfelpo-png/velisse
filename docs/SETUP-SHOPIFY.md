@@ -3,15 +3,15 @@
 The Shopify connector now runs inside the established Vercel project:
 
 - GitHub repo: `https://github.com/benfelpo-png/velisse`
-- Vercel project: `https://vercel.com/velisse-fabrics/velisse`
-- Current deployment host: `https://velisse-velisse-fabrics.vercel.app`
-- API base: `https://velisse-velisse-fabrics.vercel.app/api`
+- Vercel project: `https://vercel.com/velisse-inventory-system/velisse`
+- Current deployment host: `https://velisse-velisse-inventory-system.vercel.app`
+- API base: `https://velisse-velisse-inventory-system.vercel.app/api`
 
 Do not use the old Cloudflare Worker/D1 setup for production. The Vercel function in `api/[...route].js` owns the database sync, Shopify order queue, inventory pushes, and product pushes.
 
 ## 1. Confirm Vercel
 
-In Vercel project `velisse-fabrics/velisse`, confirm these env vars exist:
+In Vercel project `velisse-inventory-system/velisse`, confirm these env vars exist:
 
 ```text
 DATABASE_URL
@@ -43,7 +43,7 @@ Install the app, then copy the Admin API access token. You only see it once.
 
 ## 3. Add Shopify Env Vars In Vercel
 
-In Vercel -> `velisse-fabrics/velisse` -> Settings -> Environment Variables, add:
+In Vercel -> `velisse-inventory-system/velisse` -> Settings -> Environment Variables, add:
 
 ```text
 SHOPIFY_SHOP=your-store.myshopify.com
@@ -59,7 +59,7 @@ In Shopify admin -> Settings -> Notifications -> Webhooks, create:
 ```text
 Event: Order creation
 Format: JSON
-URL: https://velisse-velisse-fabrics.vercel.app/api/webhooks/shopify
+URL: https://velisse-velisse-inventory-system.vercel.app/api/webhooks/shopify
 ```
 
 Create another webhook:
@@ -67,7 +67,7 @@ Create another webhook:
 ```text
 Event: Order update
 Format: JSON
-URL: https://velisse-velisse-fabrics.vercel.app/api/webhooks/shopify
+URL: https://velisse-velisse-inventory-system.vercel.app/api/webhooks/shopify
 ```
 
 Copy the webhook signing secret from Shopify, then add it to Vercel:
@@ -85,7 +85,7 @@ Open the Velisse app, then go to More -> Sync & export -> Connect Shopify.
 Use:
 
 ```text
-Worker URL: https://velisse-velisse-fabrics.vercel.app/api
+Worker URL: https://velisse-velisse-inventory-system.vercel.app/api
 API key:    the APP_KEY value from Vercel
 ```
 

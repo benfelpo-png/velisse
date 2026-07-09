@@ -147,7 +147,7 @@ The app's CSV order import (`Sync → Import Shopify orders`) is the manual vers
 
 ### 3.5 The connector (built)
 
-The production connector now ships inside the established Vercel project `velisse-fabrics/velisse` as `api/[...route].js`. It owns the Admin API token through Vercel env vars, verifies webhook HMACs, queues incoming orders in Neon Postgres, and exposes an authenticated API the app calls directly:
+The production connector now ships inside the established Vercel project `velisse-inventory-system/velisse` as `api/[...route].js`. It owns the Admin API token through Vercel env vars, verifies webhook HMACs, queues incoming orders in Neon Postgres, and exposes an authenticated API the app calls directly:
 
 | Endpoint | Purpose |
 |---|---|
